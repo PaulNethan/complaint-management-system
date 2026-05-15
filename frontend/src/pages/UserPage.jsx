@@ -2,12 +2,12 @@ import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 
-export default function Userprofile() {
+export default function UserPage() {
 
     const navigate = useNavigate();
     const checkProtected = async () => {
         const token = localStorage.getItem("token");
-        const response = await fetch("http://127.0.0.1:8000/api/userprofile/", {
+        const response = await fetch("http://127.0.0.1:8000/api/userpage/", {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` }
         })
