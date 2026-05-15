@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-
+import { useState } from 'react'
+import { useNavigate } from "react-router-dom"
 
 export default function LoginPage() {
 
-  const loginUsers = async () => {
+  const navigate = useNavigate();
 
+  const loginUsers = async () => {
     const response = await fetch("http://127.0.0.1:8000/api/login/", {
       method: "POST",
 
@@ -18,10 +19,26 @@ export default function LoginPage() {
       })
 
     })
+
     const data = await response.json()
-    console.log(data)
+    if (data.token) {
+      console.log("successful login");
+      localStorage.setItem("token", data.token);
+
+      if (data.role === "authority") {
+        navigate("/authority");
+      } else {
+        navigate("/user");
+      }
+
+    }
+    else {
+      console.log("login failed", data.message);
+    }
 
   }
+
+
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
