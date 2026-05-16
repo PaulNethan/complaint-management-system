@@ -6,5 +6,5 @@ class Users(models.Model):
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=225)
 
-    role = models.CharField(max_length=20, default="users")
+    role = models.CharField(max_length=20)
     is_approved = models.BooleanField(default=True)

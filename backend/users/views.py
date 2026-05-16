@@ -41,7 +41,7 @@ class RegisterView(APIView):
 
 
 """
-this class is used to handel the login logic so it recives the data from front end and then hashes the login password and checks it with the 
+this class is used to handel the login logic so it receives the data from front end and then hashes the login password and checks it with the 
 password that was stored in the browser if match is found returns a token valid for 60 min to the user 
 """
 class LoginView(APIView):
@@ -78,8 +78,8 @@ class LoginView(APIView):
 
 
 """
-this class will be performing protected route logic for now it will just recive the token and decode it and if the token has not expired or tampered 
-it will return a success message later toles will be added to the database and we will be checking if the role matches and then let the user in 
+this class will be performing protected route logic for now it will just receive the token and decode it and if the token has not expired or tampered 
+it will return a success message later tools will be added to the database and we will be checking if the role matches and then let the user in 
 """
 
 class ProtectedRouteView(APIView):

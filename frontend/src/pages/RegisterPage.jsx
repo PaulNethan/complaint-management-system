@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 export default function RegisterPage() {
 
@@ -34,6 +34,7 @@ export default function RegisterPage() {
 
     console.log("email:", email)
     console.log("password:", password)
+    console.log("role", role)
 
     await registerBackend()
 
@@ -44,7 +45,7 @@ export default function RegisterPage() {
   return (
     <div>
 
-      <h1>registter page</h1>
+      <h1>register page</h1>
 
       <form >
 

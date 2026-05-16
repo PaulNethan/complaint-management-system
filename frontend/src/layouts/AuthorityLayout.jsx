@@ -2,12 +2,12 @@ import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 
-export default function UserPage() {
+export default function AuthorityLayout() {
 
     const navigate = useNavigate();
     const checkProtected = async () => {
         const token = localStorage.getItem("token");
-        const response = await fetch("http://127.0.0.1:8000/api/userpage/", {
+        const response = await fetch("http://127.0.0.1:8000/api/authoritylayout/", {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -21,10 +21,11 @@ export default function UserPage() {
 
     useEffect(() => {
         checkProtected()
-    }, [])
+    })
     return (
         <div>
             <p>welcome to protected user profile page</p>
         </div>
     )
 }
+
