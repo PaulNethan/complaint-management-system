@@ -2,7 +2,7 @@ import { Link, Outlet } from "react-router-dom";
 
 export default function UserLayout() {
     return (
-        <div className="flex h-screen bg-amber-400">
+        <div className="flex h-screen">
             <div className="w-64 bg-amber-50 border-r">
                 <h1 className="logo_placeholder m-8 mb-10 font-bold">CMS safe space</h1>
 
