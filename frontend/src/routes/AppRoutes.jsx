@@ -9,6 +9,7 @@ import RegisterComplaintsPage from "../pages/RegisterComplaintsPage"
 import MyComplaintsPage from "../pages/MyComplaintsPage"
 import ProfilePage from "../pages/ProfilePage"
 import AuthorityLayout from "../layouts/AuthorityLayout"
+import DetailedComplaintPage from "../pages/DetailedComplaintPage"
 
 
 export default function AppRoutes() {
@@ -22,6 +23,7 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<DashboardPage/>}/>
           <Route path="register-complaints" element={<RegisterComplaintsPage/>} />
           <Route path="my-complaints" element={<MyComplaintsPage/>}/>
+          <Route path="complaint/:id"element={<DetailedComplaintPage/>}/>
           <Route path="profile" element={<ProfilePage/>}/>
           </Route>
         <Route path="/authority" element={<AuthorityLayout />} />

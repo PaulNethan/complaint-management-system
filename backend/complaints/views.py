@@ -1,12 +1,19 @@
 import jwt
 from django.conf import settings
-from jwt import algorithms
+from jwt import DecodeError, ExpiredSignatureError, algorithms
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from complaints.models import Complaints
 from users.models import Users
+from rest_framework.serializers import ModelSerializer
 
 # Create your views here.
+
+
+class ComplaintsModelSerializer(ModelSerializer):
+    class Meta:
+        model = Complaints
+        fields = "__all__"
 
 
 class RaiseComplaintView(APIView):
@@ -75,4 +82,27 @@ class RaiseComplaintView(APIView):
         except jwt.ExpiredSignatureError:
             return Response({"message": "token Expired"}, status=401)
         except jwt.DecodeError:
+            return Response({"message": "invalid token"}, status=401)
+
+
+class DisplayComplaintsView(APIView):
+    def get(self, request):
+
+        check_api = request.headers.get("Authorization")
+
+        if not check_api:
+            return Response({"message": "token not provided"})
+        try:
+            token = check_api.split(" ")[1]
+
+            decode_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            user_complaints = Complaints.objects.filter(user=decode_token["id"])
+            if decode_token["role"] == "user":
+                serializer = ComplaintsModelSerializer(user_complaints, many=True)
+                return Response({"all_complaint_details": serializer.data})
+
+        except ExpiredSignatureError:
+            return Response({"message": "token expired"}, status=401)
+
+        except DecodeError:
             return Response({"message": "invalid token"}, status=401)
