@@ -1,6 +1,8 @@
+from django.core.checks import messages
 import jwt
 from django.conf import settings
 from jwt import DecodeError, ExpiredSignatureError, algorithms
+from rest_framework import response
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from complaints.models import Complaints
@@ -101,8 +103,51 @@ class DisplayComplaintsView(APIView):
                 serializer = ComplaintsModelSerializer(user_complaints, many=True)
                 return Response({"all_complaint_details": serializer.data})
 
-        except ExpiredSignatureError:
-            return Response({"message": "token expired"}, status=401)
-
         except DecodeError:
             return Response({"message": "invalid token"}, status=401)
+
+
+class AuthorityReciveComplaintsView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+
+        if not raw_token:
+            return Response({
+                "message":"token was not recived AuthorityReciveComplaints"
+            })
+        
+
+
+        try:
+            token = raw_token.split(' ')[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            current_authority = Users.objects.filter(id=decoded_token['id']).first()
+            if current_authority.is_approved == False:
+                return Response(
+                    {"message": "Your account was banned from approval."}
+                )
+            if current_authority.authority_type == "police":
+                police_complaints = Complaints.objects.filter(complaint_type__in=["Harassment","Domestic violence","Stalking","assault","workspaceHarassment"], assigned_to__isnull=True)
+                police_searilized = ComplaintsModelSerializer(police_complaints, many=True)
+                return Response({
+                    "complaints":police_searilized.data
+                })
+
+            elif current_authority.authority_type == "cyber_crime":
+                cyber_crime_complaints = Complaints.objects.filter(complaint_type__in=["cyber"], assigned_to__isnull=True)
+                cyber_searialized = ComplaintsModelSerializer(cyber_crime_complaints, many=True)
+                return Response({
+                    "complaints":cyber_searialized.data
+                })
+        except jwt.ExpiredSignatureError:
+            return Response({
+                "messages": "token expired"
+            },status=401)
+        except jwt.DecodeError:
+            return Response({
+                "messages":"invalid token"
+            }, status=401)
+
+

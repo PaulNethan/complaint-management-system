@@ -5,6 +5,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState("user")
+  const [auth_type, setAuth_type] = useState("")
 
   const registerBackend = async () => {
 
@@ -18,7 +19,8 @@ export default function RegisterPage() {
       body: JSON.stringify({
         email: email,
         password: password,
-        role: role
+        role: role,
+        authority_type: auth_type
       })
     }
     )
@@ -42,6 +44,7 @@ export default function RegisterPage() {
     setPassword("")
   }
 
+
   return (
     <div>
 
@@ -64,6 +67,13 @@ export default function RegisterPage() {
         >
           Authority register
         </button>
+
+        {role === "authority" && (
+          <div>
+            <button type='button' onClick={() => setAuth_type("police")}>Police</button><br />
+            <button type='button' onClick={() => setAuth_type("cyber_crime")}>Cyber crime</button>
+          </div>
+        )}
 
         <br />
 
