@@ -1,3 +1,4 @@
+from typing import Self
 from django.core.checks import messages
 import jwt
 from django.conf import settings
@@ -107,47 +108,117 @@ class DisplayComplaintsView(APIView):
             return Response({"message": "invalid token"}, status=401)
 
 
-class AuthorityReciveComplaintsView(APIView):
+class AuthorityReceiveComplaintsView(APIView):
     def post(self, request):
 
         raw_token = request.headers.get("Authorization")
 
         if not raw_token:
-            return Response({
-                "message":"token was not recived AuthorityReciveComplaints"
-            })
-        
-
+            return Response(
+                {"message": "token was not recived AuthorityReciveComplaints"}
+            )
 
         try:
-            token = raw_token.split(' ')[1]
+            token = raw_token.split(" ")[1]
             decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
 
-            current_authority = Users.objects.filter(id=decoded_token['id']).first()
+            current_authority = Users.objects.filter(id=decoded_token["id"]).first()
             if current_authority.is_approved == False:
-                return Response(
-                    {"message": "Your account was banned from approval."}
-                )
+                return Response({"message": "Your account was banned from approval."})
             if current_authority.authority_type == "police":
-                police_complaints = Complaints.objects.filter(complaint_type__in=["Harassment","Domestic violence","Stalking","assault","workspaceHarassment"], assigned_to__isnull=True)
-                police_searilized = ComplaintsModelSerializer(police_complaints, many=True)
-                return Response({
-                    "complaints":police_searilized.data
-                })
+                police_complaints = Complaints.objects.filter(
+                    complaint_type__in=[
+                        "Harassment",
+                        "Domestic violence",
+                        "Stalking",
+                        "assault",
+                        "workspaceHarassment",
+                    ],
+                    assigned_to__isnull=True,
+                )
+                police_searilized = ComplaintsModelSerializer(
+                    police_complaints, many=True
+                )
+                return Response({"complaints": police_searilized.data})
 
             elif current_authority.authority_type == "cyber_crime":
-                cyber_crime_complaints = Complaints.objects.filter(complaint_type__in=["cyber"], assigned_to__isnull=True)
-                cyber_searialized = ComplaintsModelSerializer(cyber_crime_complaints, many=True)
-                return Response({
-                    "complaints":cyber_searialized.data
-                })
+                cyber_crime_complaints = Complaints.objects.filter(
+                    complaint_type__in=["cyber"], assigned_to__isnull=True
+                )
+                cyber_searialized = ComplaintsModelSerializer(
+                    cyber_crime_complaints, many=True
+                )
+                return Response({"complaints": cyber_searialized.data})
         except jwt.ExpiredSignatureError:
-            return Response({
-                "messages": "token expired"
-            },status=401)
+            return Response({"messages": "token expired"}, status=401)
         except jwt.DecodeError:
-            return Response({
-                "messages":"invalid token"
-            }, status=401)
+            return Response({"messages": "invalid token"}, status=401)
 
 
+class AssignedToView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        complaint_id = request.data.get("complaint_id")
+
+        if not raw_token:
+            return Response(
+                {"message": "token was not received by assign complaints class"}
+            )
+
+        try:
+
+            token = raw_token.split(" ")[1]
+            decoded_Token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            found_complaints = Complaints.objects.filter(id=complaint_id).first()
+
+            current_auth = Users.objects.filter(id=decoded_Token["id"]).first()
+            if current_auth.is_approved == False:
+                return Response(
+                    {"message": "authority is not approved class assigned complaints"}
+                )
+            if found_complaints.assigned_to is None:
+                found_complaints.assigned_to = current_auth
+                found_complaints.save()
+                return Response(
+                    {
+                        "message": f"complaint was successfully assigned to authority {decoded_Token['id']}"
+                    }
+                )
+            else:
+                return Response(
+                    {"message": "complaint has been assigned to a different user"}
+                )
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired"}, status=401)
+
+        except jwt.DecodeError:
+            return Response({"messages": "invalid token"}, status=401)
+
+
+class AssignedComplaintView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+
+        if not raw_token:
+            return Response({"message": "token not provided AssignedComplaintView"})
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            found_complaints = Complaints.objects.filter(
+                assigned_to=decoded_token["id"]
+            )
+            Complaints_serialized = ComplaintsModelSerializer(
+                found_complaints, many=True
+            )
+            return Response({"complaints": Complaints_serialized.data})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "invalid token"}, status=401)

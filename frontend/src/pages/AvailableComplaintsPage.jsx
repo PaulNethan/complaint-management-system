@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
 
-export default function AvilableComplaintsPage() {
+export default function AvailableComplaintsPage() {
 
     const token = localStorage.getItem("token");
-    const [complaints, setcomplaint] = useState([]);
-    const [filter, setfilter] = useState("")
+    const [complaints, setComplaint] = useState([]);
+    const [searchFilter, setSearchFilter] = useState("")
 
     //time:0
     useEffect(() => {
@@ -16,7 +16,7 @@ export default function AvilableComplaintsPage() {
             const data = await response.json();
             if (response.ok) {
                 console.log(data.complaints);
-                setcomplaint(data.auth_complaint);
+                setComplaint(data.complaints);
             }
             else {
                 console.log(data.messages);
@@ -28,54 +28,76 @@ export default function AvilableComplaintsPage() {
 
     //onchange time x
     const filteredComplaints = complaints.filter((currentObj) => {
-        if (filter === "") {
+        if (searchFilter === "") {
             return true
         }
         return (
-            currentObj.complaint_type.toLowerCase().includes(filter.toLowerCase())
+            currentObj.complaint_type.toLowerCase().includes(searchFilter.toLowerCase())
         )
     })
 
-    //onclick time x
+    //onclick time x take complaints
+    const TakeComplaints = async (complaint_id) => {
+
+        const response = await fetch("http://127.0.0.1:8000/api/user/assign_complaints/", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                complaint_id: complaint_id
+            })
+
+        })
+        const data = await response.json();
+        console.log(data)
+
+    }
 
 
     return (
-        <div className="p-24 h-full">
-            <p id="header">avilabel complaints page</p>
-            <br />
-            <label htmlFor="header">View all the avilabel complaints </label>
+        <div className="mx-24">
 
-            <div className="p-7">
-                <div className="flex">
-                    <input type="text" value={filter} onChange={(e) => setfilter(e.target.value)} />
+            <div>
+                <div className="my-6">
+                    <p id="header" className="font-bold text-2xl">available complaints page</p>
+                    <label htmlFor="header" className="opacity-50">View all the available complaints </label>
+                </div>
 
-                    <select defaultValue="" onChange={(e) => setfilter(e.target.value)}>
-                        <option value="">All status</option>
-                        <option value="pending">Pending</option>
-                        <option value="inprogress">In progress</option>
-                        <option value="resolved">Resolved</option>
-                    </select>
 
-                    <select defaultValue="" onChange={(e) => setfilter(e.target.value)}>
-                        <option value="">All priority</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                    </select>
 
-                    <table className="w-full">
+                <div>
+                    <div className="flex mb-6">
+                        <input type="text" placeholder="Filter complaints by search " className="bg-amber-50 w-4/5" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} />
+
+                        <select className="w-1/5" defaultValue="" onChange={(e) => setSearchFilter(e.target.value)}>
+                            <option value="">All status</option>
+                            <option value="pending">Pending</option>
+                            <option value="inprogress">In progress</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+
+                        <select className="w-1/5" defaultValue="" onChange={(e) => setSearchFilter(e.target.value)}>
+                            <option value="">All priority</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+
+                    <table>
 
                         <thead>
                             <tr>
-                                <th>
-                                    <th className="opacity-50">ID</th>
-                                    <th className="opacity-50">REPORTER</th>
-                                    <th className="opacity-50">TITLE & CATEGORY</th>
-                                    <th className="opacity-50">PRIORITY</th>
-                                    <th className="opacity-50">DATE</th>
-                                    <th className="opacity-50">STATUS</th>
-                                    <th className="opacity-50">TAKE COMPLAINT</th>
-                                </th>
+                                <th className="opacity-50">ID</th>
+                                <th className="opacity-50">REPORTER</th>
+                                <th className="opacity-50">TITLE & CATEGORY</th>
+                                <th className="opacity-50">PRIORITY</th>
+                                <th className="opacity-50">DATE</th>
+                                <th className="opacity-50">STATUS</th>
+                                <th className="opacity-50">TAKE COMPLAINT</th>
                             </tr>
                         </thead>
 
@@ -85,18 +107,19 @@ export default function AvilableComplaintsPage() {
                                 return (
 
                                     <tr key={currentObj.id}>
-                                        <td>#{currentObj.id}</td>
-                                        <td>
+                                        <td className="p-2">#{currentObj.id}</td>
+                                        <td className="p-2">
                                             <div>
-                                                <p id="p">hard user name</p>
-                                                <label htmlFor="p">{currentObj.email}</label>
+                                                <p  className="p-2">hard user name</p>
+                                                <p className="p-2">{currentObj.email}</p>
                                             </div>
                                         </td>
-                                        <td>{currentObj.complaint_type} Report - {currentObj.incident_date}</td>
-                                        <td>{currentObj.severity_level}</td>
-                                        <td>{currentObj.incident_date}</td>
-                                        <td>
-                                            <button type="button">Take Complaint</button>
+                                        <td className="p-2">{currentObj.complaint_type} Report - {currentObj.incident_date}</td>
+                                        <td className="p-2">{currentObj.severity_level}</td>
+                                        <td className="p-2">{currentObj.incident_date}</td>
+                                        <td className="p-2">{currentObj.complaint_status}</td>
+                                        <td className="p-2">
+                                            <button type="button" onClick={() => TakeComplaints(currentObj.id)}>Take Complaint</button>
                                         </td>
                                     </tr>
                                 )
