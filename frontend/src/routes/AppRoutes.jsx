@@ -34,9 +34,9 @@ export default function AppRoutes() {
         <Route path="/authority" element={<AuthorityLayout />}>
           <Route index element={<Navigate to="AssignedCasePage" replace />} />
           <Route path="AssignedCasePage" element={<AssignedComplaintsPage />} />
+          <Route path="AssignedCasePage/:id" element={<CaseDetailsPage />} />
           <Route path="AvilableComplaints" element={<AvilanleComplaints />} />
           <Route path="AdminProfilePage" element={<AdminProfilePage />} />
-          <Route path="CaseDetailsPage" element={<CaseDetailsPage />} />
         </Route>
       </Routes>
 

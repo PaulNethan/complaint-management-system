@@ -4,6 +4,7 @@ from .views import RaiseComplaintView
 from .views import AuthorityReceiveComplaintsView
 from .views import AssignedToView
 from .views import AssignedComplaintView
+from .views import UpdateStatusView
 
 
 urlpatterns = [
@@ -12,4 +13,5 @@ urlpatterns = [
     path("cmp_details_for_auth/", AuthorityReceiveComplaintsView.as_view()),
     path("assign_complaints/", AssignedToView.as_view()),
     path("getComplaints/", AssignedComplaintView.as_view()),
+    path("update_status/", UpdateStatusView.as_view()),
 ]

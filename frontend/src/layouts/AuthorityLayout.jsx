@@ -24,7 +24,7 @@ export default function AuthorityLayout() {
     })
 
     const HandelLogout = () => {
-        localStorage.remove('token')
+        localStorage.removeItem('token')
         navigate('/', { replace: true });
 
     }

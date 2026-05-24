@@ -26,18 +26,15 @@ class RegisterView(APIView):
         is_approved = True
         if role == "authority":
             is_approved = False
-        if role == "authority" and authority_type not in ["police","cyber_crime"]:
-            return Response({
-                "message":"invalid authority type"
-            }, status=400)
+        if role == "authority" and authority_type not in ["police", "cyber_crime"]:
+            return Response({"message": "invalid authority type"}, status=400)
 
         Users.objects.create(
             email=email,
             password=transformedpassword,
             role=role,
             is_approved=is_approved,
-            authority_type=authority_type
-
+            authority_type=authority_type,
         )
 
         return Response({"message": "registered users successfully"})
@@ -96,9 +93,7 @@ class ProtectedRouteView(APIView):
 
             found_user = Users.objects.filter(id=decodedToken["id"]).first()
             if found_user.is_approved == False:
-                return Response(
-                    {"message": "Your account was banned from approval."}
-                )
+                return Response({"message": "Your account was banned from approval."})
             return Response(
                 {
                     "message": "Welcome to your protected page",
@@ -147,16 +142,15 @@ class ProfilePicView(APIView):
             decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
 
             found_user = Users.objects.filter(id=decoded_token["id"]).first()
-            if found_user.role == "user":
-                if profile_picture:
-                    found_user.profile_picture = profile_picture
-                    found_user.save()
-                    return Response({"message": str(found_user.profile_picture.url)})
+            if profile_picture:
+                found_user.profile_picture = profile_picture
+                found_user.save()
+                return Response({"message": str(found_user.profile_picture.url)})
 
-                else:
-                    return Response(
-                        {"message": "No image was provided in the request!"}, status=400
-                    )
+            else:
+                return Response(
+                    {"message": "No image was provided in the request!"}, status=400
+                )
 
         except jwt.ExpiredSignatureError:
             return Response({"message": "token expired "})

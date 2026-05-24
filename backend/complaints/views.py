@@ -222,3 +222,34 @@ class AssignedComplaintView(APIView):
             return Response({"message": "token expired"}, status=401)
         except jwt.DecodeError:
             return Response({"message": "invalid token"}, status=401)
+
+
+class UpdateStatusView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        complaint_id = request.data.get("complaint_id")
+        complaint_status = request.data.get("complaint_status")
+
+        if not raw_token:
+            return Response({"message": "token not provided UpdateStatusView"})
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            if (
+                Users.objects.filter(id=decoded_token["id"]).first().is_approved
+                == False
+            ):
+                return Response({"message": "authority is not approved"})
+            if Complaints.objects.filter(assigned_to=decoded_token["id"]):
+                complaint = Complaints.objects.filter(id=complaint_id).first()
+                complaint.complaint_status = complaint_status
+                complaint.save()
+                return Response({"message": "complaint status updated successfully"})
+            else:
+                return Response({"message": "complaint not assigned to you"})
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "invalid token"}, status=401)
