@@ -10,10 +10,13 @@ import MyComplaintsPage from "../pages/MyComplaintsPage"
 import ProfilePage from "../pages/ProfilePage"
 import AuthorityLayout from "../layouts/AuthorityLayout"
 import DetailedComplaintPage from "../pages/DetailedComplaintPage"
-import AdminProfilePage from "../pages/AdminProfilePage"
+import AuthorityProfilePage from "../pages/AuthorityProfilePage"
 import AssignedComplaintsPage from "../pages/AssignedCasesPage"
 import CaseDetailsPage from "../pages/CaseDetailsPage"
-import AvilanleComplaints from "../pages/AvailableComplaintsPage"
+import AvailableComplaintsPage from "../pages/AvailableComplaintsPage"
+import AdminLayout from "../layouts/AdminLayout"
+import PendingApprovalsPage from "../pages/PendingApprovalsPage"
+import AuthorityRosterPage from "../pages/AuthorityRosterPage"
 
 
 export default function AppRoutes() {
@@ -35,8 +38,13 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="AssignedCasePage" replace />} />
           <Route path="AssignedCasePage" element={<AssignedComplaintsPage />} />
           <Route path="AssignedCasePage/:id" element={<CaseDetailsPage />} />
-          <Route path="AvilableComplaints" element={<AvilanleComplaints />} />
-          <Route path="AdminProfilePage" element={<AdminProfilePage />} />
+          <Route path="AvailableComplaints" element={<AvailableComplaintsPage />} />
+          <Route path="AuthorityProfilePage" element={<AuthorityProfilePage />} />
+        </Route>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="pending_approval" replace />} />
+          <Route path="pending_approval" element={<PendingApprovalsPage />} />
+          <Route path="AuthorityRosterPage" element={<AuthorityRosterPage />} />
         </Route>
       </Routes>
 

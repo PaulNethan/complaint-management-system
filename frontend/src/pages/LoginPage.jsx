@@ -27,13 +27,15 @@ export default function LoginPage() {
 
       if (data.role === "authority") {
         navigate("/authority");
-      } else if(data.role === "user") {
+      } else if (data.role === "user") {
         navigate("/user");
+      } else if (data.role === "admin") {
+        navigate("/admin");
       }
 
     }
     else {
-      console.log("login failed", data.message , data.role);
+      console.log("login failed", data.message, data.role);
     }
 
   }

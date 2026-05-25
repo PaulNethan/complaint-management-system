@@ -5,6 +5,8 @@ from .views import AuthorityReceiveComplaintsView
 from .views import AssignedToView
 from .views import AssignedComplaintView
 from .views import UpdateStatusView
+from .views import GetAuthorityComplaintsView
+from .views import RevokeComplaintAssignmentView
 
 
 urlpatterns = [
@@ -14,4 +16,6 @@ urlpatterns = [
     path("assign_complaints/", AssignedToView.as_view()),
     path("getComplaints/", AssignedComplaintView.as_view()),
     path("update_status/", UpdateStatusView.as_view()),
+    path("getauthoritycomplaints/", GetAuthorityComplaintsView.as_view()),
+    path("revokecaseaccess", RevokeComplaintAssignmentView.as_view()),
 ]

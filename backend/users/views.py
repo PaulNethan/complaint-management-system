@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
+from rest_framework.serializers import ModelSerializer
+
 
 """
 this class is used to register a user to the database it hashes the password and then stores it in the database 
@@ -14,11 +16,17 @@ this class is used to register a user to the database it hashes the password and
 """
 
 
+class Serializer(ModelSerializer):
+    class Meta:
+        model = Users
+        fields = "__all__"
+
+
 class RegisterView(APIView):
 
     def post(self, request):
 
-        transformedpassword = make_password(password=request.data.get("password"))
+        password = request.data.get("password")
         email = request.data.get("email")
         role = request.data.get("role")
         authority_type = request.data.get("authority_type")
@@ -31,7 +39,7 @@ class RegisterView(APIView):
 
         Users.objects.create(
             email=email,
-            password=transformedpassword,
+            password=password,
             role=role,
             is_approved=is_approved,
             authority_type=authority_type,
@@ -92,11 +100,13 @@ class ProtectedRouteView(APIView):
             decodedToken = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
 
             found_user = Users.objects.filter(id=decodedToken["id"]).first()
+            if found_user.role == "admin":
+                return Response({"message": "Welcome to your protected admin page"})
             if found_user.is_approved == False:
                 return Response({"message": "Your account was banned from approval."})
             return Response(
                 {
-                    "message": "Welcome to your protected page",
+                    "message": "Welcome to your protected authority page",
                     "user email": found_user.email,
                 }
             )
@@ -151,6 +161,106 @@ class ProfilePicView(APIView):
                 return Response(
                     {"message": "No image was provided in the request!"}, status=400
                 )
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired "})
+
+        except jwt.DecodeError:
+            return Response({"message": "token expired"}, status=401)
+
+
+class AdminGetPendingAuthoritiesView(APIView):
+    def post(self, request):
+        raw_token = request.headers.get("Authorization")
+        department = request.data.get("department")
+
+        if not raw_token:
+            return Response(
+                {"message": "token not received by AdminGetPendingAuthoritiesView"},
+                status=401,
+            )
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            if decoded_token["role"] != "admin":
+                return Response(
+                    {"message": "You are not authorized to perform this action"},
+                    status=403,
+                )
+            found_user = Users.objects.filter(
+                role="authority", is_approved=False, authority_type=department
+            )
+            serialized = Serializer(found_user, many=True)
+
+            return Response({"message": serialized.data})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired "})
+
+        except jwt.DecodeError:
+            return Response({"message": "token expired"}, status=401)
+
+
+class GrantApprovalView(APIView):
+    def post(self, request):
+
+        token = request.headers.get("Authorization")
+        authority_id = request.data.get("id")
+
+        if not token:
+            return Response({"message": "token not received in GrantApprovalView"})
+
+        try:
+            token = token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            if decoded_token["role"] != "admin":
+                return Response(
+                    {"message": "You are not authorized to perform this action"},
+                    status=403,
+                )
+
+            found_authority = Users.objects.filter(id=authority_id).first()
+            if not found_authority:
+                return Response({"message": "authority not found"})
+
+            found_authority.is_approved = True
+            found_authority.save()
+            return Response({"message": "authority approved successfully"})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired "})
+
+        except jwt.DecodeError:
+            return Response({"message": "token expired"}, status=401)
+
+
+class ShowActiveAuthView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        role = request.data.get("role")
+
+        if not raw_token:
+            return Response(
+                {"message": "token not received by ShowActiveAuthView"},
+                status=401,
+            )
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            if decoded_token["role"] != "admin":
+                return Response(
+                    {"message": "You are not authorized to perform this action"},
+                    status=403,
+                )
+            found_authorities = Users.objects.filter(
+                role="authority", is_approved=True, authority_type=role
+            )
+            serialized = Serializer(found_authorities, many=True)
+            return Response({"message": serialized.data})
 
         except jwt.ExpiredSignatureError:
             return Response({"message": "token expired "})

@@ -21,7 +21,7 @@ export default function AuthorityLayout() {
     }
     useEffect(() => {
         checkProtected()
-    })
+    }, [])
 
     const HandelLogout = () => {
         localStorage.removeItem('token')
@@ -41,13 +41,13 @@ export default function AuthorityLayout() {
 
 
                 <div>
-                    <Link to="/authority/AvilableComplaints">
-                        Avilable Complaints
+                    <Link to="/authority/AvailableComplaints">
+                        Available Complaints
                     </Link>
                 </div>
 
                 <div>
-                    <Link to="/authority/AdminProfilePage">
+                    <Link to="/authority/AuthorityProfilePage">
                         Profile
                     </Link>
                 </div>

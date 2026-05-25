@@ -253,3 +253,69 @@ class UpdateStatusView(APIView):
             return Response({"message": "token expired"}, status=401)
         except jwt.DecodeError:
             return Response({"message": "invalid token"}, status=401)
+
+
+class GetAuthorityComplaintsView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        authority_id = request.data.get("authority_id")
+
+        if not raw_token:
+            return Response(
+                {"message": "token not received by GetAuthorityComplaintsView"},
+                status=401,
+            )
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            if decoded_token["role"] != "admin":
+                return Response(
+                    {"message": "You are not authorized to perform this action"},
+                    status=403,
+                )
+            found_complaints = Complaints.objects.filter(assigned_to=authority_id)
+            serialized = ComplaintsModelSerializer(found_complaints, many=True)
+            return Response({"message": serialized.data})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired "})
+
+        except jwt.DecodeError:
+            return Response({"message": "token expired"}, status=401)
+
+
+class RevokeComplaintAssignmentView(APIView):
+    def post(self, request):
+        raw_token = request.headers.get("Authorization")
+        complaint_id = request.data.get("complaint_id")
+
+        if not raw_token:
+            return Response({"message": "Token not received"}, status=401)
+
+        try:
+            # 1. Decode and verify the JWT token
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            # 2. Check if the user making the request is an admin
+            if decoded_token["role"] != "admin":
+                return Response({"message": "Unauthorized"}, status=403)
+
+            # 3. Locate the specific complaint in the database
+            complaint = Complaints.objects.filter(id=complaint_id).first()
+            if not complaint:
+                return Response({"message": "Complaint not found"}, status=404)
+
+            # 4. Modify the fields and save
+            complaint.assigned_to = None
+            complaint.complaint_status = "pending"
+            complaint.save()
+
+            return Response({"message": "Complaint assignment revoked successfully"})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "Invalid token"}, status=401)
