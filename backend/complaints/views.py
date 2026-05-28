@@ -9,8 +9,15 @@ from rest_framework.response import Response
 from complaints.models import Complaints
 from users.models import Users
 from rest_framework.serializers import ModelSerializer
+from django.utils.html import escape
+import os
+import magic
 
-# Create your views here.
+
+def safe_escape(value):
+    if value is not None:
+        return escape(str(value))
+    return value
 
 
 class ComplaintsModelSerializer(ModelSerializer):
@@ -22,22 +29,29 @@ class ComplaintsModelSerializer(ModelSerializer):
 class RaiseComplaintView(APIView):
     def post(self, request):
 
+        # 1. Configuration
+        ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"]
+        ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"]
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
         auth_header = request.headers.get("Authorization")
-        complaint_type = request.data.get("complaint_type")
-        severity_level = request.data.get("severity_level")
+        complaint_type = safe_escape(request.data.get("complaint_type"))
+        severity_level = safe_escape(request.data.get("severity_level"))
         incident_date = request.data.get("incident_date")
         incident_time = request.data.get("incident_time")
-        incident_location = request.data.get("incident_location")
+        incident_location = safe_escape(request.data.get("incident_location"))
         on_going = request.data.get("on_going") == "true"
         victim = request.data.get("victim") == "true"
-        victim_name = request.data.get("victim_name")
-        victim_email = request.data.get("victim_email")
+        victim_name = safe_escape(request.data.get("victim_name"))
+        victim_email = safe_escape(request.data.get("victim_email"))
         victim_phone_no = request.data.get("victim_phone_no")
-        accused_name = request.data.get("accused_name")
-        relationship_to_victim = request.data.get("relationship_to_victim")
-        accused_physical_description = request.data.get("accused_physical_description")
-        accused_location = request.data.get("accused_location")
-        detailed_description = request.data.get("detailed_description")
+        accused_name = safe_escape(request.data.get("accused_name"))
+        relationship_to_victim = safe_escape(request.data.get("relationship_to_victim"))
+        accused_physical_description = safe_escape(
+            request.data.get("accused_physical_description")
+        )
+        accused_location = safe_escape(request.data.get("accused_location"))
+        detailed_description = safe_escape(request.data.get("detailed_description"))
         evidence_file = request.FILES.get("evidence_file")  # for file uploads
         urgent = request.data.get("urgent") == "true"
         sos = request.data.get("sos") == "true"
@@ -47,6 +61,19 @@ class RaiseComplaintView(APIView):
 
         valid_details_consent = request.data.get("valid_details_consent") == "true"
         privacy_policy_consent = request.data.get("privacy_policy_consent") == "true"
+
+        if evidence_file:
+            if evidence_file.size > MAX_FILE_SIZE:
+                return Response({"message": "File size exceeds 10MB limit"}, status=400)
+            _, extenction = os.path.splitext(evidence_file.name.lower())
+            if extenction not in ALLOWED_EXTENSIONS:
+                return Response({"message": "Invalid file extension"}, status=400)
+            file_content = evidence_file.read(2048)
+            detected_mime = magic.from_buffer(file_content, mime=True)
+
+            evidence_file.seek(0)
+            if detected_mime not in ALLOWED_MIME_TYPES:
+                return Response({"message": "Invalid file type"}, status=400)
 
         if not auth_header:
             return Response({"message": "No token provided"})
@@ -314,6 +341,85 @@ class RevokeComplaintAssignmentView(APIView):
             complaint.save()
 
             return Response({"message": "Complaint assignment revoked successfully"})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "Invalid token"}, status=401)
+
+
+class BanuserView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        authority_id = request.data.get("authority_id")
+
+        if not raw_token:
+            return Response({"message": "token not provided"}, status=401)
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            if decoded_token["role"] != "admin":
+                return Response({"message": "unauthorized"}, status=403)
+            user = Users.objects.filter(id=authority_id).first()
+            complaint = Complaints.objects.filter(assigned_to=authority_id)
+            if not user:
+                return Response({"message": "user not found"}, status=404)
+            user.is_approved = False
+            user.save()
+            if complaint:
+                complaint.assigned_to = None
+                complaint.complaint_status = "pending"
+                complaint.save()
+
+            return Response(
+                {"message": "authority banned successfully and complaints are revoked "}
+            )
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "invalid token"}, status=401)
+
+
+class GetMasterComplaintsView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        role = request.data.get("role")
+
+        if not raw_token:
+            return Response(
+                {"message": "token not provided GetMasterComplaintsView"}, status=401
+            )
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            # Optional: Check if the user is an admin
+            if decoded_token["role"] != "admin":
+                return Response({"message": "Unauthorized"}, status=403)
+
+            # Fetch complaints based on role
+            if role == "police":
+                complaints = Complaints.objects.filter(
+                    complaint_type__in=[
+                        "Harassment",
+                        "Domestic violence",
+                        "Stalking",
+                        "assault",
+                        "workspaceHarassment",
+                    ]
+                )
+            elif role == "cyber_crime":
+                complaints = Complaints.objects.filter(complaint_type="cyber_crime")
+            else:
+                return Response({"message": "Invalid role"}, status=400)
+
+            # Serialize complaints
+            serialized = ComplaintsModelSerializer(complaints, many=True)
+            return Response({"message": serialized.data})
 
         except jwt.ExpiredSignatureError:
             return Response({"message": "Token expired"}, status=401)

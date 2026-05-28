@@ -17,6 +17,7 @@ import AvailableComplaintsPage from "../pages/AvailableComplaintsPage"
 import AdminLayout from "../layouts/AdminLayout"
 import PendingApprovalsPage from "../pages/PendingApprovalsPage"
 import AuthorityRosterPage from "../pages/AuthorityRosterPage"
+import MasterComplaintsPage from "../pages/MasterComplaintsPage"
 
 
 export default function AppRoutes() {
@@ -45,6 +46,7 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="pending_approval" replace />} />
           <Route path="pending_approval" element={<PendingApprovalsPage />} />
           <Route path="AuthorityRosterPage" element={<AuthorityRosterPage />} />
+          <Route path="MasterComplaintsPage" element={<MasterComplaintsPage />} />
         </Route>
       </Routes>
 

@@ -8,12 +8,7 @@ from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
 from rest_framework.serializers import ModelSerializer
-
-
-"""
-this class is used to register a user to the database it hashes the password and then stores it in the database 
-
-"""
+from complaints.models import Complaints
 
 
 class Serializer(ModelSerializer):
@@ -267,3 +262,72 @@ class ShowActiveAuthView(APIView):
 
         except jwt.DecodeError:
             return Response({"message": "token expired"}, status=401)
+
+
+class authorityrosterView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        role = request.data.get("role")
+
+        if not raw_token:
+            return Response({"message"})
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            if decoded_token["role"] != "admin":
+                return Response({"message": "Unauthorized"}, status=403)
+
+            if role == "police":
+                authorities = Users.objects.filter(role="authority", is_approved=True)
+            elif role == "cyber_crime":
+                authorities = Users.objects.filter(role="cyber_crime", is_approved=True)
+            else:
+                return Response({"message": "Invalid role"}, status=400)
+
+            serialized = Serializer(authorities, many=True)
+            return Response({"message": serialized.data})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "Invalid token"}, status=401)
+
+
+class AdminAssignComplaintView(APIView):
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        complaint_id = request.data.get("complaint_id")
+        authority_id = request.data.get("authority_id")
+
+        if not raw_token:
+            return Response(
+                {"message": "token not received by AdminAssignComplaintView"}
+            )
+
+        try:
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            if decoded_token["role"] != "admin":
+                return Response({"message": "Unauthorized"}, status=403)
+
+            found_complaint = Complaints.objects.filter(id=complaint_id).first()
+            if not found_complaint:
+                return Response({"message": "Complaint not found"})
+
+            found_auth = Users.objects.filter(id=authority_id).first()
+            if not found_auth:
+                return Response({"message": "Authority not found"})
+
+            found_complaint.assigned_to = found_auth
+            found_complaint.complaint_status = "pending"
+            found_complaint.save()
+            return Response({"message": "Complaint assigned successfully"})
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "Invalid token"}, status=401)

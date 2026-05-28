@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, Outlet, useNavigate } from "react-router-dom"
+import { Link, Outlet, replace, useNavigate } from "react-router-dom"
 
 
 export default function AdminLayout() {
@@ -26,6 +26,10 @@ export default function AdminLayout() {
     }, [])
 
 
+    const handlelogout = () => {
+        navigate("/", { replace: true });
+        localStorage.removeItem('token');
+    }
 
     return (
 
@@ -34,7 +38,9 @@ export default function AdminLayout() {
                 <h1 className="logo_placeholder m-8 mb-10 font-bold">CMS Admin page</h1>
 
                 <Link to={"/admin/pending_approval"}>Pending approval</Link><br />
-                <Link to={"/admin/AuthorityRosterPage"}>Authority Roster</Link>
+                <Link to={"/admin/AuthorityRosterPage"}>Authority Roster</Link><br />
+                <Link to={"/admin/MasterComplaintsPage"}>Master Complaints</Link><br />
+                <button type="button" className="text-white bg-red-600 rounded-2xl p-1.5" onClick={() => handlelogout()}>Logout</button>
             </div>
             <div className="main-content">
                 <div>

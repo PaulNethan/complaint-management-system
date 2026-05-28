@@ -6,6 +6,8 @@ from .views import ProfilePicView
 from .views import AdminGetPendingAuthoritiesView
 from .views import GrantApprovalView
 from .views import ShowActiveAuthView
+from .views import authorityrosterView
+from .views import AdminAssignComplaintView
 
 urlpatterns = [
     path("register/", RegisterView.as_view()),
@@ -15,4 +17,6 @@ urlpatterns = [
     path("pendingauthority/", AdminGetPendingAuthoritiesView.as_view()),
     path("approveauthority/", GrantApprovalView.as_view()),
     path("getapprovedauth/", ShowActiveAuthView.as_view()),
+    path("authorityroster/", authorityrosterView.as_view()),
+    path("assigncomplaint/", AdminAssignComplaintView.as_view()),
 ]

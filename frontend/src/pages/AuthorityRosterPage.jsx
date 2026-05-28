@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useOutletContext } from "react-router-dom"
 import { useState } from "react"
+import React from "react"
 
 export default function AuthorityProfilePage() {
 
@@ -11,31 +12,34 @@ export default function AuthorityProfilePage() {
     const [selectedAuth, setSelectedAuth] = useState(null)
 
 
-    useEffect(() => {
-        const getAuthorities = async () => {
-            const response = await fetch("http://localhost:8000/api/authority/getapprovedauth/", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ role: role })
-            })
-            if (response.ok) {
+
+    const getAuthorities = async () => {
+        const response = await fetch("http://localhost:8000/api/authority/getapprovedauth/", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ role: role })
+        })
+        if (response.ok) {
+            const data = await response.json()
+            setAuthorities(data.message)
+            console.log(data.message)
+        }
+        else {
+            try {
                 const data = await response.json()
-                setAuthorities(data.message)
-                console.log(data.message)
-            }
-            else {
-                try {
-                    const data = await response.json()
-                    alert(data.message || "An error occurred")
-                } catch (error) {
-                    console.error("Failed to parse error response:", error);
-                    alert(`Request failed with status: ${response.status}`);
-                }
+                alert(data.message || "An error occurred")
+            } catch (error) {
+                console.error("Failed to parse error response:", error);
+                alert(`Request failed with status: ${response.status}`);
             }
         }
+    }
+
+
+    useEffect(() => {
         getAuthorities()
     }, [role])
 
@@ -94,6 +98,31 @@ export default function AuthorityProfilePage() {
             }
         }
     };
+
+    const handlebanauth = async (authorityId) => {
+        const response = await fetch("http://localhost:8000/api/user/banauthority/", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ authority_id: authorityId })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            alert(data.message);
+            getAuthorities();
+        }
+        else {
+            try {
+                const data = await response.json();
+                alert(data.message || "Could not ban authority");
+            } catch (error) {
+                console.error("Failed to parse error response:", error);
+                alert(`Failed with status: ${response.status}`);
+            }
+        }
+    }
     return (
         <div>
             <p id="header">authority roster page</p>
@@ -111,14 +140,46 @@ export default function AuthorityProfilePage() {
                 </thead>
                 <tbody>
                     {authorities.map((authority) => (
-                        <tr key={authority.id}>
-                            <td>{authority.id}</td>
-                            <td>{authority.authority_type}</td>
-                            <td>{authority.email}</td>
-                            <td>0800850640550</td>
-                            <td><button type="button" onClick={async () => { await getComplaints(authority.id) }}>View Complaints</button></td>
-                            <td><button>Remove Authority</button></td>
-                        </tr>
+                        <React.Fragment key={authority.id}>
+                            <tr>
+                                <td>{authority.id}</td>
+                                <td>{authority.authority_type}</td>
+                                <td>{authority.email}</td>
+                                <td>0800850640550</td>
+                                <td><button type="button" onClick={async () => {
+                                    if (selectedAuth === authority.id) {
+                                        setSelectedAuth(null);
+                                        setComplaints([]);
+                                    } else {
+                                        await getComplaints(authority.id);
+                                    }
+                                }}>{selectedAuth === authority.id ? "Close" : "View Complaints"}</button></td>
+                                <td><button type="button" onClick={async () => { await handlebanauth(authority.id) }}>Remove Authority</button></td>
+                            </tr>
+                            {selectedAuth === authority.id && (
+                                <tr>
+                                    <td colSpan="6">
+                                        <div>
+                                            <h4>Assigned complaints</h4>
+                                            {complaints.length === 0 ? (<p>No assigned complaints</p>) : (
+                                                <ul>
+                                                    {complaints.map((c) => (
+                                                        <li key={c.id}>
+                                                            <span>{c.complaint_type} - {c.complaint_status}</span>
+                                                            <button type="button" onClick={() => handleRemoveComplaint(c.id)}>Remove Complaint</button>
+
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+
+
+                            )}
+
+                        </React.Fragment>
                     ))}
                 </tbody>
             </table>

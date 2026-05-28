@@ -7,6 +7,8 @@ from .views import AssignedComplaintView
 from .views import UpdateStatusView
 from .views import GetAuthorityComplaintsView
 from .views import RevokeComplaintAssignmentView
+from .views import BanuserView
+from .views import GetMasterComplaintsView
 
 
 urlpatterns = [
@@ -17,5 +19,7 @@ urlpatterns = [
     path("getComplaints/", AssignedComplaintView.as_view()),
     path("update_status/", UpdateStatusView.as_view()),
     path("getauthoritycomplaints/", GetAuthorityComplaintsView.as_view()),
-    path("revokecaseaccess", RevokeComplaintAssignmentView.as_view()),
+    path("revokecaseaccess/", RevokeComplaintAssignmentView.as_view()),
+    path("banauthority/", BanuserView.as_view()),
+    path("getmastercomplaints/", GetMasterComplaintsView.as_view()),
 ]

@@ -2,61 +2,96 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function RegisterComplaintsPage() {
+
+
+  const canProceed = () => {
+    switch (step) {
+      case 1:
+        return complaintDetails.complaint_type !== "" && complaintDetails.severity_level !== ""
+      case 2:
+        return complaintDetails.incident_date !== "" && complaintDetails.incident_location !== ""
+      case 3:
+        return true
+      case 4:
+        return complaintDetails.detailed_description.trim() !== ""
+      case 5:
+        return complaintDetails.valid_details_consent === true &&
+          complaintDetails.privacy_policy_consent === true
+      default:
+        return true;
+    }
+  }
+  const token = localStorage.getItem("token");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{10}$/;
+  const [complaintDetails, setComplaints] = useState({
+    complaint_type: "",
+    severity_level: "",
+    urgent: false,
+    sos: false,
+    request_authority_reach_out: false,
+    incident_date: "",
+    incident_time: "",
+    on_going: false,
+    incident_location: "",
+    victim: false,
+    victim_name: "",
+    victim_email: "",
+    victim_phone_no: "",
+    accused_name: "",
+    relationship_to_victim: "",
+    accused_physical_description: "",
+    accused_location: "",
+    detailed_description: "",
+    valid_details_consent: false,
+    privacy_policy_consent: false,
+    victim_contact_info: ""
+  })
+  const [evidence, setEvidence] = useState([]);
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const nextStep = () => setStep(step + 1);
+  const nextStep = () => (canProceed() ? setStep(step + 1) : alert("Please fill in the required fields."))
   const prevStep = () => setStep(step - 1);
-  const [complaintType, setComplaintType] = useState("");
-  const [severityLevel, setSeverityLevel] = useState("");
-  const [urgentChB, setUrgentChB] = useState(false);
-  const [sosChB, setSosChB] = useState(false);
-  const [authorityContact, setAuthorityContact] = useState(false);
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [onGoingCheckBox, setOnGoingCheckBox] = useState(false);
-  const [location, setLocation] = useState("");
-  const [victimCheckBox, setVictimCheckBox] = useState(false);
-  const [victimName, SetVictimName] = useState("");
-  const [victimEmail, setVictimEmail] = useState("");
-  const [victimContact, setVictimContact] = useState("");
-  const [accusedName, setAccusedName] = useState("");
-  const [relationshipToVictim, setRelationShipToVictim] = useState("");
-  const [victimPhysicalDescription, setVictimPhysicalDescription] = useState("");
-  const [victimLocation, setVictimLocation] = useState("");
-  const [detailedComplaint, setDetailedComplaint] = useState("");
-  const [evidence, setEvidence] = useState([]);
-  const [valid_details_consent, setValid_details_consent] = useState(false);
-  const [privacy_policy_consent, setPrivacy_policy_consent] = useState(false);
+
+  const handelChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setComplaints((oldData) => ({
+      ...oldData,
+      [name]: type === "checkbox" ? checked : value
+    }))
+  }
+
 
   const handelSubmitComplaints = async () => {
     const formData = new FormData();
 
-    formData.append("complaint_type", complaintType);
-    formData.append("severity_level", severityLevel);
-    formData.append("urgent", urgentChB);
-    formData.append("sos", sosChB);
-    formData.append("request_authority_reach_out", authorityContact);
-    formData.append("incident_date", date);
-    formData.append("incident_time", time);
-    formData.append("on_going", onGoingCheckBox);
-    formData.append("incident_location", location);
-    formData.append("victim", victimCheckBox);
-    formData.append("victim_name", victimName);
-    formData.append("victim_email", victimEmail);
-    formData.append("victim_phone_no", victimContact);
-    formData.append("accused_name", accusedName);
-    formData.append("relationship_to_victim", relationshipToVictim);
-    formData.append("accused_physical_description", victimPhysicalDescription);
-    formData.append("accused_location", victimLocation);
-    formData.append("detailed_description", detailedComplaint);
-    formData.append("valid_details_consent", valid_details_consent);
-    formData.append("privacy_policy_consent", privacy_policy_consent);
+    const contact_input = complaintDetails.victim_contact_info
+    if (contact_input !== "") {
+      let emailValue = ""
+      let phoneValue = ""
 
+      if (emailRegex.test(contact_input)) {
+        emailValue = contact_input
+      } else if (phoneRegex.test(contact_input)) {
+        phoneValue = contact_input
+      } else {
+        alert("Please enter a valid email address or 10-digit phone number.")
+        return;
+      }
+      formData.append("victim_email", emailValue);
+      formData.append("victim_phone_no", phoneValue);
+    }
+
+    Object.keys(complaintDetails).forEach((key) => {
+      if (key !== "victim_contact_info" && key !== "victim_email" && key !== "victim_phone_no") {
+        formData.append(key, complaintDetails[key]);
+      }
+    })
     evidence.forEach((file) => {
       formData.append("evidence_file", file);
     });
 
-    const token = localStorage.getItem("token");
+
 
     const response = await fetch(
       "http://127.0.0.1:8000/api/user/raisecomplaints/",
@@ -110,12 +145,13 @@ export default function RegisterComplaintsPage() {
 
             <div className="flex">
               <div>
-                <label htmlFor="compType">Complaint Type</label>
+                <label htmlFor="compType">Complaint Type*</label>
                 <br />
                 <select
                   id="compType"
-                  defaultValue=""
-                  onChange={(e) => setComplaintType(e.target.value)}
+                  value={complaintDetails.complaint_type}
+                  onChange={handelChange}
+                  name="complaint_type"
                 >
                   <option value="">Select Complaint Type</option>
                   <option value="Harassment">Harassment</option>
@@ -130,12 +166,13 @@ export default function RegisterComplaintsPage() {
               </div>
 
               <div>
-                <label htmlFor="severity">Severity Level </label>
+                <label htmlFor="severity">Severity Level*</label>
                 <br />
                 <select
                   id="severity"
-                  defaultValue=""
-                  onChange={(e) => setSeverityLevel(e.target.value)}
+                  value={complaintDetails.severity_level}
+                  onChange={handelChange}
+                  name="severity_level"
                 >
                   <option value="">Select Severity Level</option>
                   <option value="low">Low</option>
@@ -155,30 +192,41 @@ export default function RegisterComplaintsPage() {
             <p>Incident Details</p>
 
             <div>
+              <label htmlFor="date">Date of incident*</label> <br />
               <input
+                id="date"
                 type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
+                value={complaintDetails.incident_date}
+                onChange={handelChange}
+                name="incident_date"
               />
               <br />
+              <label htmlFor="time">Time of incident</label> <br />
               <input
+                id="time"
+                type="time"
+                value={complaintDetails.incident_time}
+                name="incident_time"
+                onChange={handelChange}
+              />
+              <br />
+              <label htmlFor="location">Location of incident*</label>
+              <br />
+              <input
+                id="location"
                 type="text"
                 placeholder=" Enter location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={complaintDetails.incident_location}
+                name="incident_location"
+                onChange={handelChange}
               />
               <br />
               <label>
                 <input
                   type="checkbox"
-                  checked={onGoingCheckBox}
-                  onChange={() => setOnGoingCheckBox(!onGoingCheckBox)}
+                  checked={complaintDetails.on_going}
+                  onChange={handelChange}
+                  name="on_going"
                 />
                 <span>Is this incident ongoing right now?</span>
               </label>
@@ -196,13 +244,14 @@ export default function RegisterComplaintsPage() {
               <input
                 type="checkbox"
                 id="victimCheck"
-                checked={victimCheckBox}
-                onChange={() => setVictimCheckBox(!victimCheckBox)}
+                checked={complaintDetails.victim}
+                name="victim"
+                onChange={handelChange}
               />
               <label htmlFor="victimCheck">
                 I am the victim in this incident
               </label>
-              {victimCheckBox === false ? (
+              {complaintDetails.victim === false ? (
                 <div>
                   <div className=" flex gap-9">
                     <div className="my-6">
@@ -214,8 +263,9 @@ export default function RegisterComplaintsPage() {
                         type="text"
                         id="victimName"
                         placeholder="Leave blank if unknown or anonymous"
-                        value={victimName}
-                        onChange={(e) => SetVictimName(e.target.value)}
+                        value={complaintDetails.victim_name}
+                        name="victim_name"
+                        onChange={handelChange}
                       />
                     </div>
 
@@ -228,8 +278,9 @@ export default function RegisterComplaintsPage() {
                         type="text"
                         id="victimContact"
                         placeholder="Phone or email"
-                        value={victimContact}
-                        onChange={(e) => setVictimContact(e.target.value)}
+                        value={complaintDetails.victim_contact_info}
+                        name="victim_contact_info"
+                        onChange={handelChange}
                       />
                     </div>
                   </div>
@@ -252,8 +303,9 @@ export default function RegisterComplaintsPage() {
                     type="text"
                     id="accusedName"
                     placeholder="Name if known"
-                    value={accusedName}
-                    onChange={(e) => setAccusedName(e.target.value)}
+                    value={complaintDetails.accused_name}
+                    name="accused_name"
+                    onChange={handelChange}
                   />
                 </div>
 
@@ -266,8 +318,9 @@ export default function RegisterComplaintsPage() {
                     type="text"
                     id="relationshipToVictim"
                     placeholder="e.g., Colleague, Stranger, spouse"
-                    value={relationshipToVictim}
-                    onChange={(e) => setRelationShipToVictim(e.target.value)}
+                    value={complaintDetails.relationship_to_victim}
+                    name="relationship_to_victim"
+                    onChange={handelChange}
                   />
                 </div>
               </div>
@@ -277,8 +330,9 @@ export default function RegisterComplaintsPage() {
                 type="text"
                 id="physicalDescription"
                 placeholder="Physical Description"
-                value={victimPhysicalDescription}
-                onChange={(e) => setVictimPhysicalDescription(e.target.value)}
+                value={complaintDetails.accused_physical_description}
+                name="accused_physical_description"
+                onChange={handelChange}
               />
               <br />
               <label htmlFor="address">Known Location / Address</label>
@@ -287,8 +341,9 @@ export default function RegisterComplaintsPage() {
                 type="text"
                 id="address"
                 placeholder="Known Location / Address"
-                value={victimLocation}
-                onChange={(e) => setVictimLocation(e.target.value)}
+                value={complaintDetails.accused_location}
+                name="accused_location"
+                onChange={handelChange}
               />
             </div>
             {handelBackNext()}
@@ -299,16 +354,17 @@ export default function RegisterComplaintsPage() {
         return (
           <div className="m-20 bg-amber-500 p-5">
             <p>Detailed Description *</p>
-            <label htmlFor="description" className="opacity-50">
+            <label htmlFor="detailed_description" className="opacity-50">
               Describe what happened in as much detail as possible.
             </label>
             <br />
             <textarea
               className="w-full h-36 bg-amber-50"
-              id="description"
+              id="detailed_description"
               placeholder="Please provide a detailed account of the incident"
-              value={detailedComplaint}
-              onChange={(e) => setDetailedComplaint(e.target.value)}
+              value={complaintDetails.detailed_description}
+              name="detailed_description"
+              onChange={handelChange}
             ></textarea>
             <br />
             <label htmlFor="file">Evidence Upload (Optional)</label>
@@ -339,8 +395,9 @@ export default function RegisterComplaintsPage() {
                   type="checkbox"
                   className="h-6 w-6 mt-2"
                   id="check1"
-                  checked={urgentChB}
-                  onChange={() => setUrgentChB(!urgentChB)}
+                  checked={complaintDetails.urgent}
+                  onChange={handelChange}
+                  name="urgent"
                 />
                 <div>
                   <label htmlFor="check1">Mark as Urgent</label> <br />
@@ -355,8 +412,9 @@ export default function RegisterComplaintsPage() {
                   type="checkbox"
                   className="h-6 w-6 mt-2"
                   id="check2"
-                  checked={sosChB}
-                  onChange={() => setSosChB(!sosChB)}
+                  checked={complaintDetails.sos}
+                  onChange={handelChange}
+                  name="sos"
                 />
                 <div>
                   <label htmlFor="check2" className="text-red-800">
@@ -374,8 +432,9 @@ export default function RegisterComplaintsPage() {
                   type="checkbox"
                   className="h-6 w-6 mt-2"
                   id="check3"
-                  checked={authorityContact}
-                  onChange={() => setAuthorityContact(!authorityContact)}
+                  checked={complaintDetails.request_authority_reach_out}
+                  onChange={handelChange}
+                  name="request_authority_reach_out"
                 />
                 <div>
                   <label htmlFor="check3">Allow Authority Contact</label> <br />
@@ -387,23 +446,23 @@ export default function RegisterComplaintsPage() {
               </div>
             </div>
             <div className="mt-5">
-                <p>Declaration & Consent</p>
-                <div className="flex">
-                    <input type="checkbox" id="consent1" className="h-6 w-6 mt-2" checked={valid_details_consent} onChange={()=>setValid_details_consent(!valid_details_consent)}/>
-                    <div>
-                        <label htmlFor="consent1">I confirm that the information provided is true to the best of my knowledge. *</label>
-                        <br />
-                        <label htmlFor="consent1" className="opacity-50">{valid_details_consent ? "" : "You must confirm this declaration"}</label>
-                    </div>
+              <p>Declaration & Consent</p>
+              <div className="flex">
+                <input type="checkbox" id="consent1" className="h-6 w-6 mt-2" checked={complaintDetails.valid_details_consent} onChange={handelChange} name="valid_details_consent" />
+                <div>
+                  <label htmlFor="consent1">I confirm that the information provided is true to the best of my knowledge. *</label>
+                  <br />
+                  <label htmlFor="consent1" className="opacity-50">{complaintDetails.valid_details_consent ? "" : "You must confirm this declaration"}</label>
                 </div>
-                <div className="flex">
-                    <input type="checkbox" id="consent2" className="h-6 w-6 mt-2" checked={privacy_policy_consent} onChange={()=>setPrivacy_policy_consent(!privacy_policy_consent)}/>
-                    <div>
-                        <label htmlFor="consent2">I agree to the privacy policy and understand how my data will be handled. *</label>
-                        <br />
-                        <label htmlFor="consent2" className="opacity-50">{privacy_policy_consent ? "" : "You must agree to the privacy policy"}</label>
-                    </div>
+              </div>
+              <div className="flex">
+                <input type="checkbox" id="consent2" className="h-6 w-6 mt-2" checked={complaintDetails.privacy_policy_consent} onChange={handelChange} name="privacy_policy_consent" />
+                <div>
+                  <label htmlFor="consent2">I agree to the privacy policy and understand how my data will be handled. *</label>
+                  <br />
+                  <label htmlFor="consent2" className="opacity-50">{complaintDetails.privacy_policy_consent ? "" : "You must agree to the privacy policy"}</label>
                 </div>
+              </div>
             </div>
             {handelBackNext()}
           </div>
@@ -421,6 +480,8 @@ export default function RegisterComplaintsPage() {
         return <p>unknown step</p>;
     }
   };
+
+
   return (
     <div className="mainContainer">
       <div className="header">
