@@ -37,12 +37,17 @@ export default function MyComplaintsPage() {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }
         })
+        if (response.status === 429) {
+            const error = await response.json()
+            alert(`submission blocked: ${error.details || 'Too many requests. Please wait.'}`)
+            return
+        }
         const data = await response.json()
         setComplaints(data.all_complaint_details);
     }
-    useEffect(()=>{
+    useEffect(() => {
         myComplaints();
-    },[]);
+    }, []);
 
 
     return (
@@ -85,23 +90,23 @@ export default function MyComplaintsPage() {
                     <tbody>
 
                         {filteredComplaints.map((currentObj) => {
-                            return(
+                            return (
 
-                            <tr key={currentObj.id}>
+                                <tr key={currentObj.id}>
 
-                                <td className="opacity-50">#{currentObj.id}</td>
-                                <td>{currentObj.complaint_type} Report - {currentObj.incident_date}</td>
-                                <td className="opacity-50">{currentObj.complaint_type}</td>
-                                <td className={handelPriority(currentObj.severity_level)}>{handelPriority(currentObj.severity_level)}</td>
-                                <td className="opacity-50">{currentObj.incident_date}</td>
-                                <td className="bg-blue-500">Pending</td>
-                                <td>
-                                    <Link to={`/user/complaint/${currentObj.id}`} state={currentObj}>
-                                        view
-                                    </Link>
-                                </td>
+                                    <td className="opacity-50">#{currentObj.id}</td>
+                                    <td>{currentObj.complaint_type} Report - {currentObj.incident_date}</td>
+                                    <td className="opacity-50">{currentObj.complaint_type}</td>
+                                    <td className={handelPriority(currentObj.severity_level)}>{handelPriority(currentObj.severity_level)}</td>
+                                    <td className="opacity-50">{currentObj.incident_date}</td>
+                                    <td className="bg-blue-500">Pending</td>
+                                    <td>
+                                        <Link to={`/user/complaint/${currentObj.id}`} state={currentObj}>
+                                            view
+                                        </Link>
+                                    </td>
 
-                            </tr>
+                                </tr>
                             )
 
                         })}

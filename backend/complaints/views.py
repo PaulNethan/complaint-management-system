@@ -12,6 +12,11 @@ from rest_framework.serializers import ModelSerializer
 from django.utils.html import escape
 import os
 import magic
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+
+
+class bodyguard1(UserRateThrottle):
+    scope = "complaint_submission"
 
 
 def safe_escape(value):
@@ -27,6 +32,9 @@ class ComplaintsModelSerializer(ModelSerializer):
 
 
 class RaiseComplaintView(APIView):
+
+    throttle_classes = [bodyguard1, AnonRateThrottle]
+
     def post(self, request):
 
         # 1. Configuration
@@ -65,8 +73,8 @@ class RaiseComplaintView(APIView):
         if evidence_file:
             if evidence_file.size > MAX_FILE_SIZE:
                 return Response({"message": "File size exceeds 10MB limit"}, status=400)
-            _, extenction = os.path.splitext(evidence_file.name.lower())
-            if extenction not in ALLOWED_EXTENSIONS:
+            _, extension = os.path.splitext(evidence_file.name.lower())
+            if extension not in ALLOWED_EXTENSIONS:
                 return Response({"message": "Invalid file extension"}, status=400)
             file_content = evidence_file.read(2048)
             detected_mime = magic.from_buffer(file_content, mime=True)
