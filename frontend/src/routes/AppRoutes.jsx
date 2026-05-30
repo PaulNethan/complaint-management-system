@@ -18,6 +18,7 @@ import AdminLayout from "../layouts/AdminLayout"
 import PendingApprovalsPage from "../pages/PendingApprovalsPage"
 import AuthorityRosterPage from "../pages/AuthorityRosterPage"
 import MasterComplaintsPage from "../pages/MasterComplaintsPage"
+import ResetPasswordPage from "../pages/ResetPasswordPage"
 
 
 export default function AppRoutes() {
@@ -27,6 +28,7 @@ export default function AppRoutes() {
         <Route path='/' element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/resetpassword" element={<ResetPasswordPage />} />
         <Route path='/user' element={<UserLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />

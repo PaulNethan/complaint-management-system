@@ -1,15 +1,25 @@
 import { useEffect } from "react"
-import { useOutletContext } from "react-router-dom"
 import { useState } from "react"
 import React from "react"
+import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { CardHeader, CardContent } from "@/components/ui/card";
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export default function AuthorityProfilePage() {
 
     const token = localStorage.getItem("token")
-    const role = useOutletContext();
+    const [role, setRole] = useState("police")
     const [authorities, setAuthorities] = useState([]);
     const [complaints, setComplaints] = useState([]);
     const [selectedAuth, setSelectedAuth] = useState(null)
+    const [filter, setFilter] = useState("")
+
+    const filteredAuthorities = authorities.filter((auth) => {
+        return auth.email.toLowerCase().includes(filter.toLowerCase())
+    })
+
 
 
 
@@ -124,65 +134,91 @@ export default function AuthorityProfilePage() {
         }
     }
     return (
-        <div>
-            <p id="header">authority roster page</p>
-            <label htmlFor="header">Revoke authority access / remove complaints </label>
-            <table>
-                <thead >
-                    <tr>
-                        <th>id</th>
-                        <th>Authority Type</th>
-                        <th>Email</th>
-                        <th>phone no</th>
-                        <th>View Complaints</th>
-                        <th>Remove Authority</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {authorities.map((authority) => (
-                        <React.Fragment key={authority.id}>
-                            <tr>
-                                <td>{authority.id}</td>
-                                <td>{authority.authority_type}</td>
-                                <td>{authority.email}</td>
-                                <td>0800850640550</td>
-                                <td><button type="button" onClick={async () => {
-                                    if (selectedAuth === authority.id) {
-                                        setSelectedAuth(null);
-                                        setComplaints([]);
-                                    } else {
-                                        await getComplaints(authority.id);
-                                    }
-                                }}>{selectedAuth === authority.id ? "Close" : "View Complaints"}</button></td>
-                                <td><button type="button" onClick={async () => { await handlebanauth(authority.id) }}>Remove Authority</button></td>
-                            </tr>
-                            {selectedAuth === authority.id && (
-                                <tr>
-                                    <td colSpan="6">
-                                        <div>
-                                            <h4>Assigned complaints</h4>
-                                            {complaints.length === 0 ? (<p>No assigned complaints</p>) : (
-                                                <ul>
-                                                    {complaints.map((c) => (
-                                                        <li key={c.id}>
-                                                            <span>{c.complaint_type} - {c.complaint_status}</span>
-                                                            <button type="button" onClick={() => handleRemoveComplaint(c.id)}>Remove Complaint</button>
+        <div className="main min-w-dvh w-full flex flex-col space-y-8  m-9">
+            <div>
+                <header id="header" className="text-white font-medium text-2xl" >authority roster page</header>
+                <label htmlFor="header" className="text-white">Revoke authority access / remove complaints </label>
+            </div>
 
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
+            <CardHeader className="flex gap-6">
+                <Input placeholder="filter" className="bg-[#151515] w-4/5 " value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
+
+                <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger className="bg-[#151515] w-1/5 text-white">
+                        <SelectValue placeholder="Select Department" />
+                    </SelectTrigger>
+
+                    <SelectContent className="bg-[#151515] text-white">
+
+                        <SelectItem value="police" >Police</SelectItem>
+                        <SelectItem value="cyber_crime" >Cyber Crime</SelectItem>
+                    </SelectContent>
 
 
-                            )}
+                </Select>
 
-                        </React.Fragment>
-                    ))}
-                </tbody>
-            </table>
+            </CardHeader>
+
+            <CardContent className="border border-zinc-800 rounded-2xl overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="border-zinc-800 hover:bg-[#0A0A0A]">
+                            <TableHead className="text-white font-medium ">id</TableHead>
+                            <TableHead className="text-white font-medium ">Authority Type</TableHead>
+                            <TableHead className="text-white font-medium ">Email</TableHead>
+                            <TableHead className="text-white font-medium ">phone no</TableHead>
+                            <TableHead className="text-white font-medium ">View Complaints</TableHead>
+                            <TableHead className="text-white font-medium ">Remove Authority</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredAuthorities.map((authority) => (
+                            <React.Fragment key={authority.id}>
+                                <TableRow className="text-white border-zinc-800 hover:bg-[#0A0A0A]">
+                                    <TableCell>{authority.id}</TableCell>
+                                    <TableCell>{authority.authority_type}</TableCell>
+                                    <TableCell>{authority.email}</TableCell>
+                                    <TableCell>0800850640550</TableCell>
+                                    <TableCell><Button type="button" onClick={async () => {
+                                        if (selectedAuth === authority.id) {
+                                            setSelectedAuth(null);
+                                            setComplaints([]);
+                                        } else {
+                                            await getComplaints(authority.id);
+                                        }
+                                    }}>{selectedAuth === authority.id ? "Close" : "View Complaints"}
+                                    </Button>
+                                    </TableCell>
+                                    <TableCell><Button type="button" onClick={async () => { await handlebanauth(authority.id) }}>Remove Authority</Button></TableCell>
+                                </TableRow>
+                                {selectedAuth === authority.id && (
+                                    <TableRow className="text-white border-zinc-800 hover:bg-[#0A0A0A]">
+                                        <TableCell colSpan="6">
+                                            <div>
+                                                <h4 className="text-white">Assigned complaints</h4>
+                                                {complaints.length === 0 ? (<p className="text-white">No assigned complaints</p>) : (
+                                                    <ul>
+                                                        {complaints.map((c) => (
+                                                            <li key={c.id}>
+                                                                <span>{c.complaint_type} - {c.complaint_status}</span>
+                                                                <Button type="button" onClick={() => handleRemoveComplaint(c.id)}>Remove Complaint</Button>
+
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+
+
+                                )}
+
+                            </React.Fragment>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
         </div >
     )
 }

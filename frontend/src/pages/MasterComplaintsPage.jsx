@@ -1,16 +1,29 @@
-import { useOutletContext } from "react-router-dom"
 import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { act } from "react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 
 export default function MasterComplaintsPage() {
 
-    const role = useOutletContext()
+    const [role, setRole] = useState("police")
     const token = localStorage.getItem("token")
     const [complaints, setComplaints] = useState([])
     const [ActiveTab, setActiveTab] = useState("unassigned")
     const unassigned = complaints.filter((c) => c.assigned_to == null)
     const assigned = complaints.filter((c) => c.assigned_to !== null)
     const [authority, setauthority] = useState([])
+    const [filter, setFilter] = useState("")
+
+    const filteredComplaints = ActiveTab === "unassigned" ? unassigned : assigned
+        .filter((complaint) => {
+            return complaint.complaint_type.toLowerCase().includes(filter.toLowerCase()) ||
+                complaint.complaint_status.toLowerCase().includes(filter.toLowerCase()) ||
+                complaint.complaint_type.toLowerCase().includes(filter.toLowerCase())
+        })
 
     const getComplaints = async () => {
         const response = await fetch("http://localhost:8000/api/user/getmastercomplaints/", {
@@ -94,55 +107,90 @@ export default function MasterComplaintsPage() {
     }
 
     return (
-        <div>
-            <h2>Master Complaint Log ({role})</h2>
-            <div>
-                <button type="button" onClick={() => setActiveTab("unassigned")}>Unassigned Cases ({unassigned.length})</button>
-                <button type="button" onClick={() => setActiveTab("assigned")}>Assigned Cases ({assigned.length})</button>
+        <div className="main min-w-dvh w-full flex flex-col space-y-8  m-9">
+            <header className="text-white font-medium text-2xl ">Master Complaint Log ({role})</header>
+            <Card className="bg-[#0A0A0A] space-x-10 space-y-4">
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>Severity</th>
-                            <th>Status</th>
-                            {ActiveTab === "unassigned" ? <th>Action</th> : <th>Assigned To</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {ActiveTab === "unassigned" ? (
-                            unassigned.map((c) => (
-                                <tr key={c.id}>
-                                    <td>{c.id}</td>
-                                    <td>{c.complaint_type}</td>
-                                    <td>{c.severity_level}</td>
-                                    <td>{c.complaint_status}</td>
-                                    <td>
-                                        <select onChange={(e) => handelassign(e.target.value, c.id)}>
-                                            <option value="">Assign officer</option>
-                                            {authority.map((current) => (
-                                                <option value={current.id} key={current.id}>{current.id}</option>
+                <CardHeader className="flex gap-6">
+                    <Input placeholder="filter" className="bg-[#151515] w-4/5 " value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
 
-                                            ))}
-                                        </select>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            assigned.map((c) => (
-                                <tr key={c.id}>
-                                    <td>{c.id}</td>
-                                    <td>{c.complaint_type}</td>
-                                    <td>{c.severity_level}</td>
-                                    <td>{c.complaint_status}</td>
-                                    <td>User ID: {c.assigned_to}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                    <Select value={role} onValueChange={setRole}>
+                        <SelectTrigger className="bg-[#151515] w-1/5 text-white">
+                            <SelectValue placeholder="Select Department" />
+                        </SelectTrigger>
+
+                        <SelectContent className="bg-[#151515] text-white">
+
+                            <SelectItem value="police" >Police</SelectItem>
+                            <SelectItem value="cyber_crime" >Cyber Crime</SelectItem>
+                        </SelectContent>
+
+
+                    </Select>
+
+
+                    <Select value={ActiveTab} onValueChange={setActiveTab}>
+                        <SelectTrigger className="bg-[#151515] w-1/5 text-white">
+                            <SelectValue placeholder="Complaint Type" />
+                        </SelectTrigger>
+
+                        <SelectContent className="bg-[#151515] text-white">
+                            <SelectItem value="unassigned">unassigned</SelectItem>
+                            <SelectItem value="assigned">Assigned</SelectItem>
+                        </SelectContent>
+
+                    </Select>
+
+                </CardHeader>
+
+
+                <CardContent className="border border-zinc-800 rounded-2xl overflow-hidden">
+
+
+                    <Table className="text-white">
+                        <TableHeader className="text-white">
+                            <TableRow className="border-zinc-800 hover:bg-[#0A0A0A]">
+                                <TableHead className="text-white">ID</TableHead>
+                                <TableHead className="text-white">Type</TableHead>
+                                <TableHead className="text-white">Severity</TableHead>
+                                <TableHead className="text-white">Status</TableHead>
+                                <TableHead className="text-white">{ActiveTab === "unassigned" ? "Action" : "Assigned To"}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {ActiveTab === "unassigned" ? (
+                                filteredComplaints.map((c) => (
+                                    <TableRow key={c.id} className="border-zinc-800 hover:bg-[#0A0A0A]">
+                                        <TableCell className="text-white">{c.id}</TableCell>
+                                        <TableCell className="text-white">{c.complaint_type}</TableCell>
+                                        <TableCell className="text-white">{c.severity_level}</TableCell>
+                                        <TableCell className="text-white">{c.complaint_status}</TableCell>
+                                        <TableCell className="text-white">
+                                            <select onChange={(e) => handelassign(e.target.value, c.id)}>
+                                                <option value="">Assign officer</option>
+                                                {authority.map((current) => (
+                                                    <option value={current.id} key={current.id}>{current.id}</option>
+
+                                                ))}
+                                            </select>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                filteredComplaints.map((c) => (
+                                    <TableRow key={c.id} className="border-zinc-800 hover:bg-[#0A0A0A]">
+                                        <TableCell className="text-white">{c.id}</TableCell>
+                                        <TableCell className="text-white">{c.complaint_type}</TableCell>
+                                        <TableCell className="text-white">{c.severity_level}</TableCell>
+                                        <TableCell className="text-white">{c.complaint_status}</TableCell>
+                                        <TableCell className="text-white">User ID: {c.assigned_to}</TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
     )
 }
