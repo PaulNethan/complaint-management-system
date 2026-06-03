@@ -25,6 +25,7 @@ class RegisterView(APIView):
         email = request.data.get("email")
         role = request.data.get("role")
         authority_type = request.data.get("authority_type")
+        name = request.data.get("name")
 
         is_approved = True
         if role == "authority":
@@ -32,12 +33,13 @@ class RegisterView(APIView):
         if role == "authority" and authority_type not in ["police", "cyber_crime"]:
             return Response({"message": "invalid authority type"}, status=400)
 
-        Users.objects.create(
+        Users.objects.create_user(
             email=email,
             password=password,
             role=role,
             is_approved=is_approved,
             authority_type=authority_type,
+            name=name,
         )
 
         return Response({"message": "registered users successfully"})
@@ -55,6 +57,7 @@ class LoginView(APIView):
         verifyEmail = request.data.get("email")
         verifyPassword = request.data.get("password")
         found_user = Users.objects.filter(email=verifyEmail).first()
+        print(f"DEBUG LOGIN - Email: '{verifyEmail}' | Password: '{verifyPassword}'")
         if found_user is not None:
             if check_password(verifyPassword, found_user.password):
                 if found_user.is_approved == False:
@@ -281,9 +284,13 @@ class authorityrosterView(APIView):
                 return Response({"message": "Unauthorized"}, status=403)
 
             if role == "police":
-                authorities = Users.objects.filter(role="authority", is_approved=True)
+                authorities = Users.objects.filter(
+                    role="authority", authority_type="police", is_approved=True
+                )
             elif role == "cyber_crime":
-                authorities = Users.objects.filter(role="cyber_crime", is_approved=True)
+                authorities = Users.objects.filter(
+                    role="authority", authority_type="cyber_crime", is_approved=True
+                )
             else:
                 return Response({"message": "Invalid role"}, status=400)
 

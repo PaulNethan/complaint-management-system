@@ -46,7 +46,7 @@ class RaiseComplaintView(APIView):
         complaint_type = safe_escape(request.data.get("complaint_type"))
         severity_level = safe_escape(request.data.get("severity_level"))
         incident_date = request.data.get("incident_date")
-        incident_time = request.data.get("incident_time")
+        incident_time = request.data.get("incident_time") or None
         incident_location = safe_escape(request.data.get("incident_location"))
         on_going = request.data.get("on_going") == "true"
         victim = request.data.get("victim") == "true"
@@ -159,7 +159,9 @@ class AuthorityReceiveComplaintsView(APIView):
 
             current_authority = Users.objects.filter(id=decoded_token["id"]).first()
             if current_authority.is_approved == False:
-                return Response({"message": "Your account was banned from approval."})
+                return Response(
+                    {"message": "Your account was banned from approval."}, status=403
+                )
             if current_authority.authority_type == "police":
                 police_complaints = Complaints.objects.filter(
                     complaint_type__in=[
@@ -178,7 +180,7 @@ class AuthorityReceiveComplaintsView(APIView):
 
             elif current_authority.authority_type == "cyber_crime":
                 cyber_crime_complaints = Complaints.objects.filter(
-                    complaint_type__in=["cyber"], assigned_to__isnull=True
+                    complaint_type__in=["cyber_crime"], assigned_to__isnull=True
                 )
                 cyber_searialized = ComplaintsModelSerializer(
                     cyber_crime_complaints, many=True
@@ -376,9 +378,7 @@ class BanuserView(APIView):
             user.is_approved = False
             user.save()
             if complaint:
-                complaint.assigned_to = None
-                complaint.complaint_status = "pending"
-                complaint.save()
+                complaint.update(assigned_to=None, complaint_status="pending")
 
             return Response(
                 {"message": "authority banned successfully and complaints are revoked "}

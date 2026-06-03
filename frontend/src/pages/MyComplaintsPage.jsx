@@ -1,5 +1,11 @@
+import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { SelectItem, SelectValue, SelectContent, Select, SelectTrigger } from "@/components/ui/select";
+import { Table, TableCell, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 
 export default function MyComplaintsPage() {
@@ -25,7 +31,7 @@ export default function MyComplaintsPage() {
             return true
         }
         return (
-            currentObj.complaint_type.toLowerCase().includes(search.toLowerCase())
+            currentObj.complaint_type.toLowerCase().includes(search.toLowerCase()) || currentObj.complaint_status.toLowerCase().includes(search.toLowerCase())
         )
     })
 
@@ -51,9 +57,9 @@ export default function MyComplaintsPage() {
 
 
     return (
-        <div className="bg-yellow-800 h-full p-6">
+        <div className="min-h-screen p-8  space-y-6 bg-[#F7F8FC]">
 
-            <div className="header">
+            <div className="header ">
                 <h2 className="text-2xl font-bold " id="header">My Complaints</h2>
                 <label htmlFor="header" className="opacity-50">Track and manage your reported incidents</label>
             </div>
@@ -61,60 +67,81 @@ export default function MyComplaintsPage() {
 
             <div className="">
 
-                <div className="container_for_search_and_filter flex justify-between gap-8">
-                    <input className="w-3/4" type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="search by title or id" />
-                    <select defaultValue="">
-                        <option value="">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="inprogress">In progress</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
-
-                <table className="bg-red-600 w-full">
-
-                    <thead className="bg-yellow-50">
-
-                        <tr>
-                            <th className="opacity-50">ID</th>
-                            <th className="opacity-50">TITLE</th>
-                            <th className="opacity-50">CATEGORY</th>
-                            <th className="opacity-50">PRIORITY</th>
-                            <th className="opacity-50">DATE</th>
-                            <th className="opacity-50">STATUS</th>
-                            <th className="opacity-50">ACTION</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        {filteredComplaints.map((currentObj) => {
-                            return (
-
-                                <tr key={currentObj.id}>
-
-                                    <td className="opacity-50">#{currentObj.id}</td>
-                                    <td>{currentObj.complaint_type} Report - {currentObj.incident_date}</td>
-                                    <td className="opacity-50">{currentObj.complaint_type}</td>
-                                    <td className={handelPriority(currentObj.severity_level)}>{handelPriority(currentObj.severity_level)}</td>
-                                    <td className="opacity-50">{currentObj.incident_date}</td>
-                                    <td className="bg-blue-500">Pending</td>
-                                    <td>
-                                        <Link to={`/user/complaint/${currentObj.id}`} state={currentObj}>
-                                            view
-                                        </Link>
-                                    </td>
-
-                                </tr>
-                            )
-
-                        })}
-
-                    </tbody>
+                <Card >
+                    <div className=" flex flex-row  mx-auto w-full p-2 gap-2.5">
 
 
-                </table>
+                        <Input className="flex-46" type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="search by title or id" />
+                        <Select value={search} onValueChange={(val) => setSearch(val)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="All Statuses" />
+                            </SelectTrigger>
+
+
+                            <SelectContent>
+
+
+
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="in_progress">In progress</SelectItem>
+                                <SelectItem value="resolved">Resolved</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <Table >
+
+                        <TableHeader className="">
+
+                            <TableRow className="font-bold rounded-2xl">
+                                <TableHead className="font-semibold text-sm">ID</TableHead>
+                                <TableHead className="font-semibold text-sm">TITLE</TableHead>
+                                <TableHead className="font-semibold text-sm">CATEGORY</TableHead>
+                                <TableHead className="font-semibold text-sm">PRIORITY</TableHead>
+                                <TableHead className="font-semibold text-sm">DATE</TableHead>
+                                <TableHead className="font-semibold text-sm">STATUS</TableHead>
+                                <TableHead className="font-semibold text-sm">ACTION</TableHead>
+                            </TableRow>
+
+                        </TableHeader>
+
+                        <TableBody>
+
+                            {filteredComplaints.map((currentObj) => {
+                                return (
+
+                                    <TableRow key={currentObj.id}>
+
+                                        <TableCell className="opacity-50">#{currentObj.id}</TableCell>
+                                        <TableCell>{currentObj.complaint_type} Report - {currentObj.incident_date}</TableCell>
+                                        <TableCell className="opacity-50">{currentObj.complaint_type}</TableCell>
+                                        <TableCell className="p-2">{currentObj.severity_level}</TableCell>
+                                        <TableCell className="opacity-50">{currentObj.incident_date}</TableCell>
+                                        <TableCell >
+                                            <Badge variant="secondary">
+                                                {currentObj.complaint_status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button asChild variant="outline">
+
+                                                <Link to={`/user/complaint/${currentObj.id}`} state={currentObj}>
+                                                    view Details
+                                                </Link>
+                                            </Button>
+                                        </TableCell>
+
+                                    </TableRow>
+                                )
+
+                            })}
+
+                        </TableBody>
+
+
+                    </Table>
+                </Card>
+
             </div>
 
         </div>

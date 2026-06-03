@@ -75,7 +75,7 @@ export default function PendingApprovalsPage() {
 
             <Card className="bg-[#0A0A0A] space-x-10 space-y-4">
                 <CardHeader className="flex gap-6">
-                    <Input placeholder="filter" className="bg-[#151515] w-4/5 " value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
+                    <Input placeholder="filter" className="bg-[#151515] w-4/5 text-white p-3.5" value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
 
                     <Select value={role} onValueChange={setRole}>
                         <SelectTrigger className="bg-[#151515] w-1/5 text-white">
@@ -108,7 +108,7 @@ export default function PendingApprovalsPage() {
 
                             {filteredAuthorities.map((auth) => (
                                 <TableRow key={auth.id} className="hover:bg-[#0A0A0A]">
-                                    <TableCell>hard Paul</TableCell>
+                                    <TableCell>{auth.name}</TableCell>
                                     <TableCell>{auth.email}</TableCell>
                                     <TableCell>hard 9876543210</TableCell>
                                     <TableCell><Button type="button" onClick={() => handleAccess(auth.id)}>Grant Access</Button></TableCell>

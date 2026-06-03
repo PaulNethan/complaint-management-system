@@ -16,7 +16,7 @@ export default function LoginPage() {
     gsap.from(cardRef.current, {
       y: 30,
       opacity: 0,
-      duration: 1.8,
+      duration: 1.0,
       ease: "power3.out"
     });
   }, { scope: cardRef })

@@ -36,7 +36,7 @@ export default function AdminLayout() {
     return (
 
         <div className="flex h-screen bg-[#0A0A0A]">
-            <div className="sidebar w-2/8 bg-[#0A0A0A] m-9 flex flex-col justify-between">
+            <div className="sidebar w-2/9 bg-[#0A0A0A] m-9 flex flex-col justify-between">
 
 
                 <div className="flex flex-col items-start space-y-3 ">

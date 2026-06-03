@@ -21,6 +21,7 @@ class CustomUserManager(BaseUserManager):
 class Users(AbstractBaseUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20)
+    name = models.CharField(max_length=50, null=True, blank=True)
 
     is_approved = models.BooleanField(default=True)
     profile_picture = models.FileField(

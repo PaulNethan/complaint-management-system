@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { act } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 
@@ -18,12 +17,12 @@ export default function MasterComplaintsPage() {
     const [authority, setauthority] = useState([])
     const [filter, setFilter] = useState("")
 
-    const filteredComplaints = ActiveTab === "unassigned" ? unassigned : assigned
-        .filter((complaint) => {
-            return complaint.complaint_type.toLowerCase().includes(filter.toLowerCase()) ||
-                complaint.complaint_status.toLowerCase().includes(filter.toLowerCase()) ||
-                complaint.complaint_type.toLowerCase().includes(filter.toLowerCase())
-        })
+    const baseComplaints = ActiveTab === "unassigned" ? unassigned : assigned
+    const filteredComplaints = baseComplaints.filter((complaint) => {
+        return complaint.complaint_type.toLowerCase().includes(filter.toLowerCase()) ||
+            complaint.complaint_status.toLowerCase().includes(filter.toLowerCase()) ||
+            complaint.complaint_type.toLowerCase().includes(filter.toLowerCase())
+    })
 
     const getComplaints = async () => {
         const response = await fetch("http://localhost:8000/api/user/getmastercomplaints/", {
@@ -112,9 +111,9 @@ export default function MasterComplaintsPage() {
             <Card className="bg-[#0A0A0A] space-x-10 space-y-4">
 
                 <CardHeader className="flex gap-6">
-                    <Input placeholder="filter" className="bg-[#151515] w-4/5 " value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
+                    <Input placeholder="filter" className="bg-[#151515] w-4/5 text-white p-3.5" value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
 
-                    <Select value={role} onValueChange={setRole}>
+                    <Select value={role} onValueChange={(value) => setRole(value)}>
                         <SelectTrigger className="bg-[#151515] w-1/5 text-white">
                             <SelectValue placeholder="Select Department" />
                         </SelectTrigger>
@@ -166,13 +165,18 @@ export default function MasterComplaintsPage() {
                                         <TableCell className="text-white">{c.severity_level}</TableCell>
                                         <TableCell className="text-white">{c.complaint_status}</TableCell>
                                         <TableCell className="text-white">
-                                            <select onChange={(e) => handelassign(e.target.value, c.id)}>
-                                                <option value="">Assign officer</option>
-                                                {authority.map((current) => (
-                                                    <option value={current.id} key={current.id}>{current.id}</option>
-
-                                                ))}
-                                            </select>
+                                            <Select className="text-white" onValueChange={(val) => handelassign(val, c.id)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a officer" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {authority.map((current) => (
+                                                        <SelectItem key={current.id} value={current.id.toString()}>
+                                                            {current.id}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </TableCell>
                                     </TableRow>
                                 ))

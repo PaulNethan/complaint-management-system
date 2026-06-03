@@ -141,7 +141,7 @@ export default function AuthorityProfilePage() {
             </div>
 
             <CardHeader className="flex gap-6">
-                <Input placeholder="filter" className="bg-[#151515] w-4/5 " value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
+                <Input placeholder="filter" className="bg-[#151515] w-4/5 text-white p-3.5" value={filter} onChange={(e) => setFilter(e.target.value)}></Input>
 
                 <Select value={role} onValueChange={setRole}>
                     <SelectTrigger className="bg-[#151515] w-1/5 text-white">
@@ -195,12 +195,12 @@ export default function AuthorityProfilePage() {
                                     <TableRow className="text-white border-zinc-800 hover:bg-[#0A0A0A]">
                                         <TableCell colSpan="6">
                                             <div>
-                                                <h4 className="text-white">Assigned complaints</h4>
+                                                <h4 className="text-white font-bold text-xl p-5 text-center">Assigned complaints</h4>
                                                 {complaints.length === 0 ? (<p className="text-white">No assigned complaints</p>) : (
                                                     <ul>
                                                         {complaints.map((c) => (
                                                             <li key={c.id}>
-                                                                <span>{c.complaint_type} - {c.complaint_status}</span>
+                                                                <p>{c.complaint_type} - {c.complaint_status}</p>
                                                                 <Button type="button" onClick={() => handleRemoveComplaint(c.id)}>Remove Complaint</Button>
 
                                                             </li>

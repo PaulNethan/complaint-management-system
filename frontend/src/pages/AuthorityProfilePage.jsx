@@ -1,4 +1,6 @@
+import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react"
+import { Input } from "@/components/ui/input";
 
 export default function AdminProfilePage() {
 
@@ -46,24 +48,39 @@ export default function AdminProfilePage() {
     }, []);
 
     return (
-        <div>
+        <div className="min-h-dvh w-full flex p-9">
 
-            <p className="font-extrabold" id="header">profile_picture</p>
-            <label htmlFor="header" className="opacity-50">Manage your personal information</label>
+            <div className=" mx-auto space-y-5 max-w-full min-w-3xl">
 
-            <div>
-                <p className="font-bold ">Profile Picture</p>
-                <div className="flex">
-                    <img src={`http://127.0.0.1:8000${profilePictureUrl}`} alt="My profile" className="w-32 h-32 rounded-full object-cover" />
+                <div className="">
+
+
+                    <p className="font-extrabold text-2xl" id="header">Profile Picture</p>
+                    <label htmlFor="header" className="opacity-70  ">Manage your personal information</label>
                 </div>
 
-                <div>
-                    <p id="upload">Upload a new photo</p>
-                    <label htmlFor="upload" className="opacity-50">JPG, GIF or PNG. Max size of 2MB.</label>
-                    <input type="file" placeholder="Choose file" accept=".jpg, .jpeg, .png, .gif"
-                        onChange={HandelProfile}
-                    />
-                </div>
+                <Card className="bg-[#FFFFFF]  p-9 flex flex-col gap-3">
+
+                    <p className="font-bold text-xl">Profile Picture</p>
+                    <div className="flex gap-7">
+
+
+                        <div className="flex">
+                            <img src={`http://127.0.0.1:8000${profilePictureUrl}`} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
+                        </div>
+
+                        <div>
+                            <p id="upload">Upload a new photo</p>
+                            <label htmlFor="upload" className="opacity-70 text-xs">JPG, GIF or PNG. Max size of 2MB.</label>
+                            <div className="flex ">
+
+                                <Input type="file" placeholder="Choose file" accept=".jpg, .jpeg, .png, .gif"
+                                    onChange={HandelProfile}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </Card>
             </div>
         </div>
     )
