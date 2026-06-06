@@ -13,6 +13,9 @@ from django.utils.html import escape
 import os
 import magic
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from complaints.agents.workflow import app
+from complaints.agents.tools import post_to_twitter_tool
+from complaints.agents.workflow import llm
 
 
 class bodyguard1(UserRateThrottle):
@@ -428,6 +431,100 @@ class GetMasterComplaintsView(APIView):
             # Serialize complaints
             serialized = ComplaintsModelSerializer(complaints, many=True)
             return Response({"message": serialized.data})
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "Invalid token"}, status=401)
+
+
+class DraftPublicPostView(APIView):
+
+    def post(self, request):
+
+        raw_token = request.headers.get("Authorization")
+        complaint_id = request.data.get("complaint_id")
+
+        if not raw_token:
+            return Response({"message": "token not provided"}, status=401)
+
+        try:
+
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            found_complaint = Complaints.objects.filter(id=complaint_id).first()
+
+            if not found_complaint:
+                return Response({"message": "Complaint not found"}, status=404)
+
+            result = app.invoke(
+                {"complaint_text": found_complaint.detailed_description}
+            )
+
+            return Response(
+                {
+                    "draft_post_ai": result.get("draft_post"),
+                    "safety_issue_ai": result.get("safety_issue"),
+                    "auditor_notes_ai": result.get("auditor_notes"),
+                },
+                status=200,
+            )
+
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Token expired"}, status=401)
+        except jwt.DecodeError:
+            return Response({"message": "Invalid token"}, status=401)
+
+
+class ConfirmPostView(APIView):
+
+    def post(self, request):
+        raw_token = request.headers.get("Authorization")
+        draft_post = request.data.get("draft_post")
+        complaint_id = request.data.get("complaint_id")
+
+        if not raw_token:
+            return Response({"message": "token not provided"}, status=401)
+
+        try:
+
+            token = raw_token.split(" ")[1]
+            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            found_complaint = Complaints.objects.filter(id=complaint_id).first()
+            if not found_complaint:
+                return Response({"message": "Complaint not found"}, status=404)
+
+            llm_with_tools = llm.bind_tools([post_to_twitter_tool])
+
+            prompt = f"Please publish the following public safety warning to Twitter/X: {draft_post}"
+            response = llm_with_tools.invoke(prompt)
+
+            if response.tool_calls:
+                tool_call = response.tool_calls[0]
+                tool_result = post_to_twitter_tool.invoke(tool_call["args"])
+
+                # A. Check if the tool failed (case-insensitive check for "error")
+                if tool_result.lower().startswith("error"):
+                    return Response({"message": tool_result}, status=400)
+
+                # B. If the tool succeeded: save to the database
+                found_complaint.public_post_text = draft_post
+                found_complaint.is_public = True
+                found_complaint.save()
+
+                # C. Return the success response
+                return Response(
+                    {"message": "posted successfully", "twitter_result": tool_result},
+                    status=200,
+                )
+            else:
+                # D. The LLM chose not to make a tool call
+                return Response(
+                    {"message": "AI agent chose not to call the posting tool."},
+                    status=400,
+                )
 
         except jwt.ExpiredSignatureError:
             return Response({"message": "Token expired"}, status=401)

@@ -7,7 +7,11 @@ from django.conf import settings
 # Create your models here.
 class Complaints(models.Model):
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="raised_complaints")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="raised_complaints",
+    )
     complaint_type = models.CharField(max_length=50)
     severity_level = models.CharField(max_length=25)
     incident_date = models.DateField()
@@ -32,4 +36,12 @@ class Complaints(models.Model):
     valid_details_consent = models.BooleanField()
     privacy_policy_consent = models.BooleanField()
     complaint_status = models.CharField(default="pending", max_length=50)
-    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_cases")
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_cases",
+    )
+    is_public = models.BooleanField(null=True)
+    public_post_text = models.TextField(blank=True, null=True)

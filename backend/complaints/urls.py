@@ -9,6 +9,8 @@ from .views import GetAuthorityComplaintsView
 from .views import RevokeComplaintAssignmentView
 from .views import BanuserView
 from .views import GetMasterComplaintsView
+from .views import DraftPublicPostView
+from .views import ConfirmPostView
 
 
 urlpatterns = [
@@ -22,4 +24,6 @@ urlpatterns = [
     path("revokecaseaccess/", RevokeComplaintAssignmentView.as_view()),
     path("banauthority/", BanuserView.as_view()),
     path("getmastercomplaints/", GetMasterComplaintsView.as_view()),
+    path("draft_post/", DraftPublicPostView.as_view()),
+    path("submit_post/", ConfirmPostView.as_view()),
 ]

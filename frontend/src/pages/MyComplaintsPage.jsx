@@ -6,13 +6,39 @@ import { SelectItem, SelectValue, SelectContent, Select, SelectTrigger } from "@
 import { Table, TableCell, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription
+} from "@/components/ui/dialog"
+import { Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function MyComplaintsPage() {
 
     const [complaints, setComplaints] = useState([])
     const [search, setSearch] = useState("")
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedComplaintId, setSelectedComplaintId] = useState(null);
+    const token = localStorage.getItem("token");
+    const [form_data, Setformdata] = useState({
+        draft_post_ai: "",
+        manual_complaint_draft: "",
+        safety_issue_ai: null,
+        auditor_notes_ai: "",
+    })
 
+    const [step, setstep] = useState(0);
+
+    const setter = (event) => {
+        const { name, value } = event.target;
+        Setformdata((current) => ({
+            ...current,
+            [name]: value,
+        }))
+    }
 
     /*the below part is used to check the severity level so we can use the data to display it in the priority column*/
     const handelPriority = (severityLevel) => {
@@ -56,6 +82,97 @@ export default function MyComplaintsPage() {
     }, []);
 
 
+    {/* send complaint id and token
+    receive the draft
+    */}
+    const draft_post = async () => {
+        const response = await fetch("http://127.0.0.1:8000/api/user/draft_post/", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                complaint_id: selectedComplaintId
+            })
+        })
+
+        if (response.ok) {
+            const data = await response.json()
+            Setformdata({
+                ...form_data,
+                draft_post_ai: data.draft_post_ai,
+                safety_issue_ai: data.safety_issue_ai,
+                auditor_notes_ai: data.auditor_notes_ai,
+            })
+            console.log(data.draft_post_ai)
+            console.log(data.safety_issue_ai)
+            console.log(data.auditor_notes_ai)
+            setstep(2);
+        } else {
+            const error = await response.json()
+            alert(`${error.details || 'Failed to generate draft post'}`)
+        }
+    }
+
+    const handleSubmitPost = async () => {
+        const response = await fetch("http://127.0.0.1:8000/api/user/submit_post/", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                draft_post: form_data.draft_post_ai,
+                complaint_id: selectedComplaintId
+
+            })
+        })
+        if (response.ok) {
+            const data = await response.json()
+            setIsModalOpen(!isModalOpen)
+            console.log(data.message)
+            alert(data.message)
+        } else {
+            const error = await response.json()
+            alert(`${error.details || 'Failed to generate draft post'}`)
+        }
+
+    }
+
+    const handeldialog = () => {
+
+        return (
+            <div>
+                {step === 0 && (
+                    <div className="flex flex-row items-center justify-center gap-2">
+                        <Button type="button" onClick={() => { setstep(2); Setformdata({ ...form_data, draft_post_ai: "" }) }}>Craft the post (Manual)</Button>
+                        <Button type="button" onClick={() => { setstep(1); draft_post(selectedComplaintId) }}>Use ai to write post</Button>
+                    </div>
+                )}
+                {step === 1 && (
+                    <div className="flex flex-row items-center justify-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                        <p className="text-sm text-muted-foreground animate-pulse">
+                            AI is drafting your post...
+                        </p>
+                    </div>
+                )}
+                {step === 2 && (
+                    <div>
+
+                        <div className="flex flex-row items-center justify-center gap-2">
+                            <Textarea value={form_data.draft_post_ai} onChange={(e) => Setformdata({ ...form_data, draft_post_ai: e.target.value })} />
+                        </div>
+                        <div>
+                            <Button type="button" onClick={handleSubmitPost}>Post</Button>
+                        </div>
+                    </div>
+
+                )}
+            </div>
+        )
+    }
     return (
         <div className="min-h-screen p-8  space-y-6 bg-[#F7F8FC]">
 
@@ -101,6 +218,7 @@ export default function MyComplaintsPage() {
                                 <TableHead className="font-semibold text-sm">DATE</TableHead>
                                 <TableHead className="font-semibold text-sm">STATUS</TableHead>
                                 <TableHead className="font-semibold text-sm">ACTION</TableHead>
+                                <TableHead className="font-semibold text-sm">POST</TableHead>
                             </TableRow>
 
                         </TableHeader>
@@ -131,6 +249,12 @@ export default function MyComplaintsPage() {
                                             </Button>
                                         </TableCell>
 
+                                        <TableCell>
+                                            <Button type="button" variant="secondary" onClick={() => { setSelectedComplaintId(currentObj.id); setIsModalOpen(!isModalOpen); setstep(0) }}>
+                                                GO PUBLIC
+                                            </Button>
+                                        </TableCell>
+
                                     </TableRow>
                                 )
 
@@ -143,6 +267,21 @@ export default function MyComplaintsPage() {
                 </Card>
 
             </div>
+
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            Go Public
+                        </DialogTitle>
+                        <DialogDescription>
+                            Choose how you want to draft your public safety post.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {handeldialog()}
+                </DialogContent>
+
+            </Dialog>
 
         </div>
     )
