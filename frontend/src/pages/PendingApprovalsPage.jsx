@@ -22,7 +22,7 @@ export default function PendingApprovalsPage() {
     })
 
     const getAuthorities = async () => {
-        const response = await fetch("http://127.0.0.1:8000/api/pendingauthority/", {
+        const response = await fetch(window.API_BASE_URL + "/api/pendingauthority/", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -42,7 +42,7 @@ export default function PendingApprovalsPage() {
 
 
     const handleAccess = async (authId) => {
-        const response = await fetch("http://127.0.0.1:8000/api/authority/approveauthority/", {
+        const response = await fetch(window.API_BASE_URL + "/api/authority/approveauthority/", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

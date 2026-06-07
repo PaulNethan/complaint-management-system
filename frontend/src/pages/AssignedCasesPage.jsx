@@ -29,7 +29,7 @@ export default function AssignedComplaintsPage() {
 
     useEffect(() => {
         const getAssignedComplaints = async () => {
-            const response = await fetch("http://127.0.0.1:8000/api/user/getComplaints/", {
+            const response = await fetch(window.API_BASE_URL + "/api/user/getComplaints/", {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
             });

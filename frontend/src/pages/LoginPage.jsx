@@ -24,7 +24,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const loginUsers = async () => {
-    const response = await fetch("http://127.0.0.1:8000/api/login/", {
+    const response = await fetch(window.API_BASE_URL + "/api/login/", {
       method: "POST",
 
       headers: {

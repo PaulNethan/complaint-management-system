@@ -10,7 +10,7 @@ export default function AdminLayout() {
     const token = localStorage.getItem('token')
 
     const checkProtected = async () => {
-        const response = await fetch("http://127.0.0.1:8000/api/authoritylayout/", {
+        const response = await fetch(window.API_BASE_URL + "/api/authoritylayout/", {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` }
         })

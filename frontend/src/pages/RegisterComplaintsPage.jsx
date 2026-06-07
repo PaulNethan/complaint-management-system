@@ -103,7 +103,7 @@ export default function RegisterComplaintsPage() {
 
 
     const response = await fetch(
-      "http://127.0.0.1:8000/api/user/raisecomplaints/",
+      window.API_BASE_URL + "/api/user/raisecomplaints/",
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },

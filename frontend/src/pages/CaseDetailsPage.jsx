@@ -16,7 +16,7 @@ export default function CaseDetailsPage() {
 
     useEffect(() => {
         const updateProgress = async () => {
-            const response = await fetch("http://127.0.0.1:8000/api/user/update_status/", {
+            const response = await fetch(window.API_BASE_URL + "/api/user/update_status/", {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,

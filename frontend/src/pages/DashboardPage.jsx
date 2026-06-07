@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
     const dashboardData = async () => {
 
-        const response = await fetch("http://127.0.0.1:8000/api/user/viewcomplaints/", {
+        const response = await fetch(window.API_BASE_URL + "/api/user/viewcomplaints/", {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${token}`

@@ -15,7 +15,7 @@ export default function AvailableComplaintsPage() {
     //time:0
 
     const getComplaints = async () => {
-        const response = await fetch("http://127.0.0.1:8000/api/user/cmp_details_for_auth/", {
+        const response = await fetch(window.API_BASE_URL + "/api/user/cmp_details_for_auth/", {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -46,7 +46,7 @@ export default function AvailableComplaintsPage() {
     //onclick time x take complaints
     const TakeComplaints = async (complaint_id) => {
 
-        const response = await fetch("http://127.0.0.1:8000/api/user/assign_complaints/", {
+        const response = await fetch(window.API_BASE_URL + "/api/user/assign_complaints/", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

@@ -14,7 +14,7 @@ export default function RegisterPage() {
 
   const registerBackend = async () => {
 
-    const response = await fetch("http://127.0.0.1:8000/api/register/", {
+    const response = await fetch(window.API_BASE_URL + "/api/register/", {
 
       method: "POST",
       headers: {

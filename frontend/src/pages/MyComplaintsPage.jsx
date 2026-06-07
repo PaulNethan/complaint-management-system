@@ -65,7 +65,7 @@ export default function MyComplaintsPage() {
 
         const token = localStorage.getItem("token");
 
-        const response = await fetch("http://127.0.0.1:8000/api/user/viewcomplaints/", {
+        const response = await fetch(window.API_BASE_URL + "/api/user/viewcomplaints/", {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -86,7 +86,7 @@ export default function MyComplaintsPage() {
     receive the draft
     */}
     const draft_post = async () => {
-        const response = await fetch("http://127.0.0.1:8000/api/user/draft_post/", {
+        const response = await fetch(window.API_BASE_URL + "/api/user/draft_post/", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -116,7 +116,7 @@ export default function MyComplaintsPage() {
     }
 
     const handleSubmitPost = async () => {
-        const response = await fetch("http://127.0.0.1:8000/api/user/submit_post/", {
+        const response = await fetch(window.API_BASE_URL + "/api/user/submit_post/", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

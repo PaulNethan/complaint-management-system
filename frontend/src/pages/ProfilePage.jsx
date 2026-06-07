@@ -17,7 +17,7 @@ export default function HomePage() {
     const formdata = new FormData();
     formdata.append("profile_picture", selectedFile);
 
-    const response = await fetch("http://127.0.0.1:8000/api/profilepic/", {
+    const response = await fetch(window.API_BASE_URL + "/api/profilepic/", {
       method: "POST",
       headers: { Authorization: `bearer ${token}` },
       body: formdata
@@ -34,7 +34,7 @@ export default function HomePage() {
   }
   useEffect(() => {
     const fetchProfilePic = async () => {
-      const response = await fetch("http://127.0.0.1:8000/api/profilepic/", {
+      const response = await fetch(window.API_BASE_URL + "/api/profilepic/", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` }
       });
