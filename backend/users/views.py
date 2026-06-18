@@ -83,8 +83,8 @@ class LoginView(APIView):
                     key="token",
                     value=token,
                     httponly=True,
-                    secure=is_secure,
-                    samesite="Lax",
+                    secure=True,
+                    samesite=None,
                 )
                 return response
             else:
