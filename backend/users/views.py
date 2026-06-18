@@ -84,7 +84,7 @@ class LoginView(APIView):
                     value=token,
                     httponly=True,
                     secure=True,
-                    samesite=None,
+                    samesite="None",
                 )
                 return response
             else:
@@ -240,6 +240,6 @@ class LogoutView(APIView):
     def post(self, request):
 
         response = Response({"message": "successfully logged out"})
-        response.delete_cookie("token", samesite="Lax")
+        response.delete_cookie("token", samesite="None")
 
         return response
