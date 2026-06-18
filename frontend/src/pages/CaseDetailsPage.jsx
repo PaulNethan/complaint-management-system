@@ -6,20 +6,20 @@ import { Button } from "@/components/ui/button";
 import { CircleCheck } from "lucide-react"
 import { Tally1 } from "lucide-react";
 import { Calendar, MapPin, TriangleAlert, FileText, ArrowLeft } from "lucide-react";
+import { apiFetch } from "@/services/api";
+
 
 export default function CaseDetailsPage() {
     const location = useLocation();
     const navigate = useNavigate();
     const [complaint, setComplaints] = useState(location.state);
-    const token = localStorage.getItem("token")
     const [progress, setProgress] = useState(complaint.complaint_status);
 
     useEffect(() => {
         const updateProgress = async () => {
-            const response = await fetch(window.API_BASE_URL + "/api/user/update_status/", {
+            const response = await apiFetch("/api/user/update_status/", {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ complaint_id: complaint.id, complaint_status: progress }),

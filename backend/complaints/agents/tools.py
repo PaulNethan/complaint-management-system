@@ -2,6 +2,7 @@ import os
 import tweepy
 from langchain_core.tools import tool
 from dotenv import load_dotenv
+import requests
 
 
 load_dotenv()
@@ -33,3 +34,19 @@ def post_to_twitter_tool(tweet_text: str) -> str:
 
     except Exception as e:
         return f"ERROR posting to Twitter: {str(e)}"
+
+
+@tool
+def post_to_discord_tool(message: str) -> str:
+    """
+    Useful for posting a public safety warning draft text to Discord.
+    The input must be the final approved post text as a string.
+    """
+
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+
+    response = requests.post(webhook_url, json={"content": message})
+    if response.status_code == 204:
+        return "Successfully posted to Discord!"
+    else:
+        return f"Error posting to Discord: {response.text}"

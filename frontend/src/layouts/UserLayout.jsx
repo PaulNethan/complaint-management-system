@@ -5,13 +5,21 @@ import { LayoutDashboard } from "lucide-react";
 import { List } from "lucide-react";
 import { User } from "lucide-react";
 import { LogOut, FileText } from "lucide-react";
+import { apiFetch } from "@/services/api";
+
 
 export default function UserLayout() {
     const navigate = useNavigate();
 
-    const HandelLogout = () => {
-        localStorage.removeItem("token");
-        navigate('/', { replace: true });
+    const HandelLogout = async () => {
+        const response = await apiFetch("/api/logout/", {
+            method: "POST",
+        })
+        if (response.ok) {
+            const data = await response.json()
+            console.log(data.message)
+            navigate('/')
+        }
     }
     return (
         <div className="flex h-screen bg-[#F7F8FC]">

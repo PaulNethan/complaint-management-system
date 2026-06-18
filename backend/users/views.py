@@ -1,4 +1,5 @@
 from os import access
+from complaints import permissions
 import jwt
 import datetime
 from .models import Users
@@ -9,6 +10,9 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
 from rest_framework.serializers import ModelSerializer
 from complaints.models import Complaints
+from complaints.authentication import CentralizedCookieCheck
+from complaints.permissions import isAdmin, isUser, isAuthority
+from rest_framework.permissions import IsAuthenticated
 
 
 class Serializer(ModelSerializer):
@@ -56,8 +60,8 @@ class LoginView(APIView):
 
         verifyEmail = request.data.get("email")
         verifyPassword = request.data.get("password")
+        is_secure = not settings.DEBUG
         found_user = Users.objects.filter(email=verifyEmail).first()
-        print(f"DEBUG LOGIN - Email: '{verifyEmail}' | Password: '{verifyPassword}'")
         if found_user is not None:
             if check_password(verifyPassword, found_user.password):
                 if found_user.is_approved == False:
@@ -72,7 +76,17 @@ class LoginView(APIView):
                     "role": found_user.role,
                 }
                 token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-                return Response({"token": token, "role": found_user.role})
+                response = Response(
+                    {"message": "Login successful", "role": found_user.role}
+                )
+                response.set_cookie(
+                    key="token",
+                    value=token,
+                    httponly=True,
+                    secure=is_secure,
+                    samesite="Lax",
+                )
+                return response
             else:
                 return Response({"message": "wrong password"})
         else:
@@ -86,255 +100,146 @@ it will return a success message later tools will be added to the database and w
 
 
 class ProtectedRouteView(APIView):
+
+    authentication_classes = [CentralizedCookieCheck]
+
+    permission_classes = [isAdmin | isAuthority]
+
     def post(self, request):
 
-        auth_header = request.headers.get("Authorization")
-
-        if not auth_header:
-            return Response({"message": "No token provided"}, status=404)
-
-        token = auth_header.split(" ")[1]
-        try:
-            decodedToken = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            found_user = Users.objects.filter(id=decodedToken["id"]).first()
-            if found_user.role == "admin":
-                return Response({"message": "Welcome to your protected admin page"})
-            if found_user.is_approved == False:
-                return Response({"message": "Your account was banned from approval."})
-            return Response(
-                {
-                    "message": "Welcome to your protected authority page",
-                    "user email": found_user.email,
-                }
-            )
-
-        except jwt.ExpiredSignatureError:
-            return Response(
-                {"message": "Token has expired, please login again"}, status=401
-            )
-
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+        current_user = request.user
+        return Response(
+            {
+                "message": "Welcome to your protected page",
+                "user email": request.user.email,
+            }
+        )
 
 
 class ProfilePicView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        auth = request.headers.get("Authorization")
-        if not auth:
-            return Response({"message": "token is not provided"}, status=401)
-        token = auth.split(" ")[1]
-        try:
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            found_user = Users.objects.filter(id=decoded_token["id"]).first()
 
-            # If they have a picture, send it!
-            if found_user and found_user.profile_picture:
-                return Response({"message": str(found_user.profile_picture.url)})
-            else:
-                return Response({"message": ""})  # No picture yet
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired"}, status=401)
+        if request.user and request.user.profile_picture:
+            return Response({"message": str(request.user.profile_picture.url)})
+        else:
+            return Response({"message": "no profile picture"})
 
     def post(self, request):
 
-        auth = request.headers.get("Authorization")
         profile_picture = request.FILES.get("profile_picture")
+        if profile_picture:
+            request.user.profile_picture = profile_picture
+            request.user.save()
+            return Response({"message": str(request.user.profile_picture.url)})
 
-        if not auth:
-            return Response({"message": "token is not provided"})
-
-        token = auth.split(" ")[1]
-        try:
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            found_user = Users.objects.filter(id=decoded_token["id"]).first()
-            if profile_picture:
-                found_user.profile_picture = profile_picture
-                found_user.save()
-                return Response({"message": str(found_user.profile_picture.url)})
-
-            else:
-                return Response(
-                    {"message": "No image was provided in the request!"}, status=400
-                )
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired "})
-
-        except jwt.DecodeError:
-            return Response({"message": "token expired"}, status=401)
+        else:
+            return Response(
+                {"message": "No image was provided in the request!"}, status=400
+            )
 
 
 class AdminGetPendingAuthoritiesView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
-        raw_token = request.headers.get("Authorization")
         department = request.data.get("department")
 
-        if not raw_token:
-            return Response(
-                {"message": "token not received by AdminGetPendingAuthoritiesView"},
-                status=401,
-            )
+        found_user = Users.objects.filter(
+            role="authority", is_approved=False, authority_type=department
+        )
+        serialized = Serializer(found_user, many=True)
 
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            if decoded_token["role"] != "admin":
-                return Response(
-                    {"message": "You are not authorized to perform this action"},
-                    status=403,
-                )
-            found_user = Users.objects.filter(
-                role="authority", is_approved=False, authority_type=department
-            )
-            serialized = Serializer(found_user, many=True)
-
-            return Response({"message": serialized.data})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired "})
-
-        except jwt.DecodeError:
-            return Response({"message": "token expired"}, status=401)
+        return Response({"message": serialized.data})
 
 
 class GrantApprovalView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
 
-        token = request.headers.get("Authorization")
         authority_id = request.data.get("id")
 
-        if not token:
-            return Response({"message": "token not received in GrantApprovalView"})
+        found_authority = Users.objects.filter(id=authority_id).first()
+        if not found_authority:
+            return Response({"message": "authority not found"})
 
-        try:
-            token = token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            if decoded_token["role"] != "admin":
-                return Response(
-                    {"message": "You are not authorized to perform this action"},
-                    status=403,
-                )
-
-            found_authority = Users.objects.filter(id=authority_id).first()
-            if not found_authority:
-                return Response({"message": "authority not found"})
-
-            found_authority.is_approved = True
-            found_authority.save()
-            return Response({"message": "authority approved successfully"})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired "})
-
-        except jwt.DecodeError:
-            return Response({"message": "token expired"}, status=401)
+        found_authority.is_approved = True
+        found_authority.save()
+        return Response({"message": "authority approved successfully"})
 
 
 class ShowActiveAuthView(APIView):
-    def post(self, request):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
 
-        raw_token = request.headers.get("Authorization")
+    def post(self, request):
         role = request.data.get("role")
 
-        if not raw_token:
-            return Response(
-                {"message": "token not received by ShowActiveAuthView"},
-                status=401,
-            )
-
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            if decoded_token["role"] != "admin":
-                return Response(
-                    {"message": "You are not authorized to perform this action"},
-                    status=403,
-                )
-            found_authorities = Users.objects.filter(
-                role="authority", is_approved=True, authority_type=role
-            )
-            serialized = Serializer(found_authorities, many=True)
-            return Response({"message": serialized.data})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired "})
-
-        except jwt.DecodeError:
-            return Response({"message": "token expired"}, status=401)
+        found_authorities = Users.objects.filter(
+            role="authority", is_approved=True, authority_type=role
+        )
+        serialized = Serializer(found_authorities, many=True)
+        return Response({"message": serialized.data})
 
 
 class authorityrosterView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
         role = request.data.get("role")
 
-        if not raw_token:
-            return Response({"message"})
+        if role == "police":
+            authorities = Users.objects.filter(
+                role="authority", authority_type="police", is_approved=True
+            )
+        elif role == "cyber_crime":
+            authorities = Users.objects.filter(
+                role="authority", authority_type="cyber_crime", is_approved=True
+            )
+        else:
+            return Response({"message": "Invalid role"}, status=400)
 
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            if decoded_token["role"] != "admin":
-                return Response({"message": "Unauthorized"}, status=403)
-
-            if role == "police":
-                authorities = Users.objects.filter(
-                    role="authority", authority_type="police", is_approved=True
-                )
-            elif role == "cyber_crime":
-                authorities = Users.objects.filter(
-                    role="authority", authority_type="cyber_crime", is_approved=True
-                )
-            else:
-                return Response({"message": "Invalid role"}, status=400)
-
-            serialized = Serializer(authorities, many=True)
-            return Response({"message": serialized.data})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "Token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+        serialized = Serializer(authorities, many=True)
+        return Response({"message": serialized.data})
 
 
 class AdminAssignComplaintView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
         complaint_id = request.data.get("complaint_id")
         authority_id = request.data.get("authority_id")
 
-        if not raw_token:
-            return Response(
-                {"message": "token not received by AdminAssignComplaintView"}
-            )
+        found_complaint = Complaints.objects.filter(id=complaint_id).first()
+        if not found_complaint:
+            return Response({"message": "Complaint not found"})
 
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        found_auth = Users.objects.filter(id=authority_id).first()
+        if not found_auth:
+            return Response({"message": "Authority not found"})
 
-            if decoded_token["role"] != "admin":
-                return Response({"message": "Unauthorized"}, status=403)
+        found_complaint.assigned_to = found_auth
+        found_complaint.complaint_status = "pending"
+        found_complaint.save()
+        return Response({"message": "Complaint assigned successfully"})
 
-            found_complaint = Complaints.objects.filter(id=complaint_id).first()
-            if not found_complaint:
-                return Response({"message": "Complaint not found"})
 
-            found_auth = Users.objects.filter(id=authority_id).first()
-            if not found_auth:
-                return Response({"message": "Authority not found"})
+class LogoutView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [IsAuthenticated]
 
-            found_complaint.assigned_to = found_auth
-            found_complaint.complaint_status = "pending"
-            found_complaint.save()
-            return Response({"message": "Complaint assigned successfully"})
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "Token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+    def post(self, request):
+
+        response = Response({"message": "successfully logged out"})
+        response.delete_cookie("token", samesite="Lax")
+
+        return response

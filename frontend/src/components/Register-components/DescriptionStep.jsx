@@ -35,7 +35,7 @@ export default function DescriptionStep({ details, onChange, evidence, onFileUpl
             {evidence.length > 0 && (
                 <div className="mt-5">
                     <p>Evidence</p>
-                    {evidence.filter((current) => (
+                    {evidence.map((current) => (
                         <div key={current.name} className="flex gap-1 items-center">
                             {current.name}
                         </div>

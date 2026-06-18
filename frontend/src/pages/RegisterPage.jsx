@@ -3,6 +3,8 @@ import { Card } from '@/components/ui/card'
 import { Shield, User, Mail, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { apiFetch } from "@/services/api";
+
 
 export default function RegisterPage() {
 
@@ -14,7 +16,7 @@ export default function RegisterPage() {
 
   const registerBackend = async () => {
 
-    const response = await fetch(window.API_BASE_URL + "/api/register/", {
+    const response = await apiFetch("/api/register/", {
 
       method: "POST",
       headers: {

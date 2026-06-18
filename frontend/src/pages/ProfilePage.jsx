@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/services/api";
+
 
 export default function HomePage() {
 
-  const token = localStorage.getItem("token")
   const [profilePictureUrl, setProfilePictureUrl] = useState("")
 
   const HandelProfile = async (e) => {
@@ -17,9 +18,8 @@ export default function HomePage() {
     const formdata = new FormData();
     formdata.append("profile_picture", selectedFile);
 
-    const response = await fetch(window.API_BASE_URL + "/api/profilepic/", {
+    const response = await apiFetch("/api/profilepic/", {
       method: "POST",
-      headers: { Authorization: `bearer ${token}` },
       body: formdata
     });
 
@@ -34,9 +34,8 @@ export default function HomePage() {
   }
   useEffect(() => {
     const fetchProfilePic = async () => {
-      const response = await fetch(window.API_BASE_URL + "/api/profilepic/", {
+      const response = await apiFetch("/api/profilepic/", {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (response.ok && data.message !== "") {

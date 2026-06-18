@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { useRef } from 'react';
+import { apiFetch } from "@/services/api";
+
 
 export default function LoginPage() {
 
@@ -24,13 +26,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const loginUsers = async () => {
-    const response = await fetch(window.API_BASE_URL + "/api/login/", {
+    const response = await apiFetch("/api/login/", {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json"
       },
-
       body: JSON.stringify({
         email: email,
         password: password
@@ -39,9 +39,8 @@ export default function LoginPage() {
     })
 
     const data = await response.json()
-    if (data.token) {
-      console.log("successful login");
-      localStorage.setItem("token", data.token);
+    if (response.ok) {
+      console.log(response.message);
 
       if (data.role === "authority") {
         navigate("/authority");

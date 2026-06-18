@@ -4,12 +4,13 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { apiFetch } from "@/services/api";
+
 
 
 export default function MasterComplaintsPage() {
 
     const [role, setRole] = useState("police")
-    const token = localStorage.getItem("token")
     const [complaints, setComplaints] = useState([])
     const [ActiveTab, setActiveTab] = useState("unassigned")
     const unassigned = complaints.filter((c) => c.assigned_to == null)
@@ -25,10 +26,9 @@ export default function MasterComplaintsPage() {
     })
 
     const getComplaints = async () => {
-        const response = await fetch("http://localhost:8000/api/user/getmastercomplaints/", {
+        const response = await apiFetch("/api/user/getmastercomplaints/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ role: role })
@@ -51,10 +51,9 @@ export default function MasterComplaintsPage() {
 
 
     const getAuthorities = async () => {
-        const response = await fetch("http://localhost:8000/api/authorityroster/", {
+        const response = await apiFetch("/api/authorityroster/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ role: role })
@@ -81,10 +80,9 @@ export default function MasterComplaintsPage() {
 
 
     const handelassign = async (authid, complaintid) => {
-        const response = await fetch("http://localhost:8000/api/assigncomplaint/", {
+        const response = await apiFetch("/api/assigncomplaint/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ complaint_id: complaintid, authority_id: authid })

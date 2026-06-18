@@ -132,6 +132,7 @@ CORS_ALLOWED_ORIGINS = [
 cors_origins = os.getenv("CORS_ALLOWED_ORIGINS")
 if cors_origins:
     CORS_ALLOWED_ORIGINS += [origin.strip() for origin in cors_origins.split(",")]
+CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -151,3 +152,5 @@ REST_FRAMEWORK = {
         "complaint_submission": "5/min",
     }
 }
+
+DEBUG = True

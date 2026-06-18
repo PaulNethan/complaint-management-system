@@ -1,4 +1,4 @@
-from .views import LoginView
+from .views import LoginView, LogoutView
 from django.urls import path
 from .views import RegisterView
 from .views import ProtectedRouteView
@@ -19,4 +19,5 @@ urlpatterns = [
     path("getapprovedauth/", ShowActiveAuthView.as_view()),
     path("authorityroster/", authorityrosterView.as_view()),
     path("assigncomplaint/", AdminAssignComplaintView.as_view()),
+    path("logout/", LogoutView.as_view()),
 ]

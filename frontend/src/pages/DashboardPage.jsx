@@ -3,11 +3,12 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom";
 import { FileText, Clock, CirclePlay, CircleCheckBig } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/services/api";
+
 
 
 export default function DashboardPage() {
 
-    const token = localStorage.getItem("token");
     const [complaint, setComplaint] = useState([])
     const recentComplaints = [...complaint].reverse().slice(0, 3);
 
@@ -19,11 +20,8 @@ export default function DashboardPage() {
 
     const dashboardData = async () => {
 
-        const response = await fetch(window.API_BASE_URL + "/api/user/viewcomplaints/", {
+        const response = await apiFetch("/api/user/viewcomplaints/", {
             method: "GET",
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
         })
         const data = await response.json();
         setComplaint(data.all_complaint_details);

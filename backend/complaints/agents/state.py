@@ -7,3 +7,4 @@ class AgentState(TypedDict):
     draft_post: str
     safety_issue: bool
     auditor_notes: str
+    loop_count: int

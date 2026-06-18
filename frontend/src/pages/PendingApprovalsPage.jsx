@@ -7,13 +7,14 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/services/api";
+
 
 
 export default function PendingApprovalsPage() {
 
 
     const [role, setRole] = useState("police");
-    const token = localStorage.getItem('token')
     const [authority, setAuthority] = useState([]);
     const [filter, setFilter] = useState("")
 
@@ -22,10 +23,9 @@ export default function PendingApprovalsPage() {
     })
 
     const getAuthorities = async () => {
-        const response = await fetch(window.API_BASE_URL + "/api/pendingauthority/", {
+        const response = await apiFetch("/api/pendingauthority/", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ department: role })
@@ -42,10 +42,9 @@ export default function PendingApprovalsPage() {
 
 
     const handleAccess = async (authId) => {
-        const response = await fetch(window.API_BASE_URL + "/api/authority/approveauthority/", {
+        const response = await apiFetch("/api/authority/approveauthority/", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ id: authId })

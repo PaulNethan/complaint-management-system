@@ -4,20 +4,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { TableCell, TableHeader, Table, TableRow, TableBody, TableHead } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/services/api";
+
 
 
 export default function AvailableComplaintsPage() {
 
-    const token = localStorage.getItem("token");
     const [complaints, setComplaint] = useState([]);
     const [searchFilter, setSearchFilter] = useState("")
 
     //time:0
 
     const getComplaints = async () => {
-        const response = await fetch(window.API_BASE_URL + "/api/user/cmp_details_for_auth/", {
+        const response = await apiFetch("/api/user/cmp_details_for_auth/", {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
         })
         const data = await response.json();
         if (response.ok) {
@@ -46,10 +46,9 @@ export default function AvailableComplaintsPage() {
     //onclick time x take complaints
     const TakeComplaints = async (complaint_id) => {
 
-        const response = await fetch(window.API_BASE_URL + "/api/user/assign_complaints/", {
+        const response = await apiFetch("/api/user/assign_complaints/", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({

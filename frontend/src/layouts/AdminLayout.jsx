@@ -2,17 +2,17 @@ import { useEffect, useState } from "react"
 import { Link, Outlet, replace, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Shield } from "lucide-react"
+import { apiFetch } from "@/services/api";
+
 
 
 export default function AdminLayout() {
 
     const navigate = useNavigate()
-    const token = localStorage.getItem('token')
 
     const checkProtected = async () => {
-        const response = await fetch(window.API_BASE_URL + "/api/authoritylayout/", {
+        const response = await apiFetch("/api/authoritylayout/", {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
         })
         if (response.ok) {
             const data = await response.json()
@@ -28,9 +28,16 @@ export default function AdminLayout() {
     }, [])
 
 
-    const handlelogout = () => {
-        navigate("/", { replace: true });
-        localStorage.removeItem('token');
+    const handlelogout = async () => {
+        const response = await apiFetch("/api/logout/", {
+            method: "POST",
+        })
+        if (response.ok) {
+            const data = await response.json()
+            console.log(data.message)
+            navigate('/')
+
+        }
     }
 
     return (

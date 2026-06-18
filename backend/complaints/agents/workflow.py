@@ -1,15 +1,20 @@
+import os
+from dotenv import load_dotenv
 from complaints.agents.tools import post_to_twitter_tool
 from complaints.agents.state import AgentState
 from langgraph.graph import StateGraph, END
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+
+load_dotenv()
 
 
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", api_key="YOUR_KEY")
+llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=os.getenv("GROQ_API_KEY"))
 
 
 def write_node(state: AgentState) -> dict:
 
     raw_complaint = state["complaint_text"]
+    current_loop = state.get("loop_count", 0)
 
     prompt = (
         f"You are a professional Public Relations specialist. "
@@ -21,7 +26,7 @@ def write_node(state: AgentState) -> dict:
     )
     response = llm.invoke(prompt)
 
-    return {"draft_post": response.content.strip()}
+    return {"draft_post": response.content.strip(), "loop_count": current_loop + 1}
 
 
 def auditor_node(state: AgentState) -> dict:
@@ -52,7 +57,18 @@ def auditor_node(state: AgentState) -> dict:
         }
 
 
+def check_current_loop(state: AgentState) -> str:
+    is_unsafe = state["safety_issue"]
+    current_loop = state.get("loop_count", 0)
+
+    if is_unsafe and current_loop < 3:
+        return "rewrite"
+    else:
+        return "terminate"
+
+
 workflow = StateGraph(AgentState)
+
 
 workflow.add_node("writer", write_node)
 workflow.add_node("auditor", auditor_node)
@@ -61,6 +77,8 @@ workflow.set_entry_point("writer")
 
 
 workflow.add_edge("writer", "auditor")
-workflow.add_edge("auditor", END)
+workflow.add_conditional_edges(
+    "auditor", check_current_loop, {"rewrite": "writer", "terminate": END}
+)
 
 app = workflow.compile()

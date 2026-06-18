@@ -4,12 +4,12 @@ import { FileText, Clock, CirclePlay, CircleCheckBig } from "lucide-react";
 import { Card, CardContent, CardTitle, CardHeader, CardAction } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableCell, TableHeader, TableRow, TableBody } from "@/components/ui/table";
+import { apiFetch } from "@/services/api";
 
 
 
 export default function AssignedComplaintsPage() {
 
-    const token = localStorage.getItem("token");
     const [complaints, setComplaints] = useState([]);
     const [activeTab, setActiveTab] = useState("all");
 
@@ -29,9 +29,8 @@ export default function AssignedComplaintsPage() {
 
     useEffect(() => {
         const getAssignedComplaints = async () => {
-            const response = await fetch(window.API_BASE_URL + "/api/user/getComplaints/", {
+            const response = await apiFetch("/api/user/getComplaints/", {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
             });
             const data = await response.json();
             console.log(data.complaints);

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { CardHeader, CardContent } from "@/components/ui/card";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/services/api";
 
 export default function AuthorityProfilePage() {
 
-    const token = localStorage.getItem("token")
     const [role, setRole] = useState("police")
     const [authorities, setAuthorities] = useState([]);
     const [complaints, setComplaints] = useState([]);
@@ -24,10 +24,9 @@ export default function AuthorityProfilePage() {
 
 
     const getAuthorities = async () => {
-        const response = await fetch("http://localhost:8000/api/authority/getapprovedauth/", {
+        const response = await apiFetch("/api/authority/getapprovedauth/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ role: role })
@@ -55,10 +54,9 @@ export default function AuthorityProfilePage() {
 
     const getComplaints = async (authorityId) => {
         setSelectedAuth(authorityId)
-        const response = await fetch("http://localhost:8000/api/user/getauthoritycomplaints/", {
+        const response = await apiFetch("/api/user/getauthoritycomplaints/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ authority_id: authorityId })
@@ -81,10 +79,9 @@ export default function AuthorityProfilePage() {
     }
 
     const handleRemoveComplaint = async (complaintId) => {
-        const response = await fetch("http://localhost:8000/api/user/revokecaseaccess/", {
+        const response = await apiFetch("/api/user/revokecaseaccess/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ complaint_id: complaintId })
@@ -110,10 +107,9 @@ export default function AuthorityProfilePage() {
     };
 
     const handlebanauth = async (authorityId) => {
-        const response = await fetch("http://localhost:8000/api/user/banauthority/", {
+        const response = await apiFetch("/api/user/banauthority/", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ authority_id: authorityId })

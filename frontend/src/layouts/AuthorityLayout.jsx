@@ -6,18 +6,18 @@ import { LayoutDashboard } from "lucide-react";
 import { List } from "lucide-react";
 import { User } from "lucide-react";
 import { LogOut } from "lucide-react";
+import { apiFetch } from "@/services/api";
+
 
 
 
 export default function AuthorityLayout() {
 
     const navigate = useNavigate();
-    const token = localStorage.getItem('token')
 
     const checkProtected = async () => {
-        const response = await fetch(window.API_BASE_URL + "/api/authoritylayout/", {
+        const response = await apiFetch("/api/authoritylayout/", {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
         })
         if (response.ok) {
             const data = await response.json()
@@ -30,10 +30,16 @@ export default function AuthorityLayout() {
         checkProtected()
     }, [])
 
-    const HandelLogout = () => {
-        localStorage.removeItem('token')
-        navigate('/', { replace: true });
+    const HandelLogout = async () => {
+        const response = await apiFetch("/api/logout/", {
+            method: "POST",
+        })
+        if (response.ok) {
+            const data = await response.json()
+            console.log(data.message)
+            navigate('/')
 
+        }
     }
     return (
         <div className="flex h-screen bg-[#F7F8FC]">

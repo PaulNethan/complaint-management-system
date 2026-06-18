@@ -12,7 +12,7 @@ export default function detailedComplaint() {
         <div className="min-h-screen bg-[#F7F8FC] px-32 py-8">
             <div className=" mx-auto w-full max-w-6xl  flex flex-col space-y-8  bg-[#F7F8FC]">
 
-                <div lassName="flex flex-row gap-3.5 items-center">
+                <div className="flex flex-row gap-3.5 items-center">
                     <button type="button" onClick={() => navigate(-1)}>
                         <ArrowLeft />
                     </button>

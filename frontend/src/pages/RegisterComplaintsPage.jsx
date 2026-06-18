@@ -9,6 +9,8 @@ import ReviewConsentStep from "@/components/Register-components/ReviewConsentSte
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { CircleCheck } from "lucide-react";
+import { apiFetch } from "@/services/api";
+
 
 export default function RegisterComplaintsPage() {
 
@@ -30,7 +32,6 @@ export default function RegisterComplaintsPage() {
         return true;
     }
   }
-  const token = localStorage.getItem("token");
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^\d{10}$/;
   const [complaintDetails, setComplaints] = useState({
@@ -102,11 +103,9 @@ export default function RegisterComplaintsPage() {
 
 
 
-    const response = await fetch(
-      window.API_BASE_URL + "/api/user/raisecomplaints/",
+    const response = await apiFetch("/api/user/raisecomplaints/",
       {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       },
     );

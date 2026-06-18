@@ -14,8 +14,11 @@ import os
 import magic
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from complaints.agents.workflow import app
-from complaints.agents.tools import post_to_twitter_tool
+from complaints.agents.tools import post_to_discord_tool, post_to_twitter_tool
 from complaints.agents.workflow import llm
+from .authentication import CentralizedCookieCheck
+from .permissions import isAdmin, isAuthority, isUser
+from rest_framework.permissions import IsAuthenticated
 
 
 class bodyguard1(UserRateThrottle):
@@ -35,6 +38,8 @@ class ComplaintsModelSerializer(ModelSerializer):
 
 
 class RaiseComplaintView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isUser]
 
     throttle_classes = [bodyguard1, AnonRateThrottle]
 
@@ -45,7 +50,6 @@ class RaiseComplaintView(APIView):
         ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"]
         MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
-        auth_header = request.headers.get("Authorization")
         complaint_type = safe_escape(request.data.get("complaint_type"))
         severity_level = safe_escape(request.data.get("severity_level"))
         incident_date = request.data.get("incident_date")
@@ -86,447 +90,293 @@ class RaiseComplaintView(APIView):
             if detected_mime not in ALLOWED_MIME_TYPES:
                 return Response({"message": "Invalid file type"}, status=400)
 
-        if not auth_header:
-            return Response({"message": "No token provided"})
-        try:
-            token = auth_header.split(" ")[1]
-
-            decodedToken = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            foundUser = Users.objects.filter(id=decodedToken["id"]).first()
-
-            if foundUser.role == "user":
-                new_Complaint = Complaints.objects.create(
-                    user=foundUser,
-                    complaint_type=complaint_type,
-                    severity_level=severity_level,
-                    incident_date=incident_date,
-                    incident_time=incident_time,
-                    incident_location=incident_location,
-                    on_going=on_going,
-                    victim=victim,
-                    victim_name=victim_name,
-                    victim_email=victim_email,
-                    victim_phone_no=victim_phone_no,
-                    accused_name=accused_name,
-                    relationship_to_victim=relationship_to_victim,
-                    accused_physical_description=accused_physical_description,
-                    accused_location=accused_location,
-                    detailed_description=detailed_description,
-                    evidence_file=evidence_file,
-                    urgent=urgent,
-                    sos=sos,
-                    request_authority_reach_out=request_authority_reach_out,
-                    valid_details_consent=valid_details_consent,
-                    privacy_policy_consent=privacy_policy_consent,
-                )
-                return Response({"message": "complaint registered successfully"})
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token Expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "invalid token"}, status=401)
+            new_Complaint = Complaints.objects.create(
+                user=request.user,
+                complaint_type=complaint_type,
+                severity_level=severity_level,
+                incident_date=incident_date,
+                incident_time=incident_time,
+                incident_location=incident_location,
+                on_going=on_going,
+                victim=victim,
+                victim_name=victim_name,
+                victim_email=victim_email,
+                victim_phone_no=victim_phone_no,
+                accused_name=accused_name,
+                relationship_to_victim=relationship_to_victim,
+                accused_physical_description=accused_physical_description,
+                accused_location=accused_location,
+                detailed_description=detailed_description,
+                evidence_file=evidence_file,
+                urgent=urgent,
+                sos=sos,
+                request_authority_reach_out=request_authority_reach_out,
+                valid_details_consent=valid_details_consent,
+                privacy_policy_consent=privacy_policy_consent,
+            )
+            return Response({"message": "complaint registered successfully"})
 
 
 class DisplayComplaintsView(APIView):
+
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isUser]
+
     def get(self, request):
 
-        check_api = request.headers.get("Authorization")
-
-        if not check_api:
-            return Response({"message": "token not provided"})
-        try:
-            token = check_api.split(" ")[1]
-
-            decode_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            user_complaints = Complaints.objects.filter(user=decode_token["id"])
-            if decode_token["role"] == "user":
-                serializer = ComplaintsModelSerializer(user_complaints, many=True)
-                return Response({"all_complaint_details": serializer.data})
-
-        except DecodeError:
-            return Response({"message": "invalid token"}, status=401)
+        user_complaints = Complaints.objects.filter(user=request.user.id)
+        serializer = ComplaintsModelSerializer(user_complaints, many=True)
+        return Response({"all_complaint_details": serializer.data})
 
 
 class AuthorityReceiveComplaintsView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAuthority]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
-
-        if not raw_token:
+        current_authority = Users.objects.filter(id=request.user.id).first()
+        if current_authority.is_approved == False:
             return Response(
-                {"message": "token was not recived AuthorityReciveComplaints"}
+                {"message": "Your account was banned from approval."}, status=403
             )
+        if current_authority.authority_type == "police":
+            police_complaints = Complaints.objects.filter(
+                complaint_type__in=[
+                    "Harassment",
+                    "Domestic violence",
+                    "Stalking",
+                    "assault",
+                    "workspaceHarassment",
+                ],
+                assigned_to__isnull=True,
+            )
+            police_serialized = ComplaintsModelSerializer(police_complaints, many=True)
+            return Response({"complaints": police_serialized.data})
 
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            current_authority = Users.objects.filter(id=decoded_token["id"]).first()
-            if current_authority.is_approved == False:
-                return Response(
-                    {"message": "Your account was banned from approval."}, status=403
-                )
-            if current_authority.authority_type == "police":
-                police_complaints = Complaints.objects.filter(
-                    complaint_type__in=[
-                        "Harassment",
-                        "Domestic violence",
-                        "Stalking",
-                        "assault",
-                        "workspaceHarassment",
-                    ],
-                    assigned_to__isnull=True,
-                )
-                police_searilized = ComplaintsModelSerializer(
-                    police_complaints, many=True
-                )
-                return Response({"complaints": police_searilized.data})
-
-            elif current_authority.authority_type == "cyber_crime":
-                cyber_crime_complaints = Complaints.objects.filter(
-                    complaint_type__in=["cyber_crime"], assigned_to__isnull=True
-                )
-                cyber_searialized = ComplaintsModelSerializer(
-                    cyber_crime_complaints, many=True
-                )
-                return Response({"complaints": cyber_searialized.data})
-        except jwt.ExpiredSignatureError:
-            return Response({"messages": "token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"messages": "invalid token"}, status=401)
+        elif current_authority.authority_type == "cyber_crime":
+            cyber_crime_complaints = Complaints.objects.filter(
+                complaint_type__in=["cyber_crime"], assigned_to__isnull=True
+            )
+            cyber_serialized = ComplaintsModelSerializer(
+                cyber_crime_complaints, many=True
+            )
+            return Response({"complaints": cyber_serialized.data})
 
 
 class AssignedToView(APIView):
-    def post(self, request):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAuthority]
 
-        raw_token = request.headers.get("Authorization")
+    def post(self, request):
         complaint_id = request.data.get("complaint_id")
 
-        if not raw_token:
+        found_complaints = Complaints.objects.filter(id=complaint_id).first()
+
+        current_auth = Users.objects.filter(id=request.user.id).first()
+        if current_auth.is_approved == False:
             return Response(
-                {"message": "token was not received by assign complaints class"}
+                {"message": "authority is not approved class assigned complaints"}
             )
-
-        try:
-
-            token = raw_token.split(" ")[1]
-            decoded_Token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            found_complaints = Complaints.objects.filter(id=complaint_id).first()
-
-            current_auth = Users.objects.filter(id=decoded_Token["id"]).first()
-            if current_auth.is_approved == False:
-                return Response(
-                    {"message": "authority is not approved class assigned complaints"}
-                )
-            if found_complaints.assigned_to is None:
-                found_complaints.assigned_to = current_auth
-                found_complaints.save()
-                return Response(
-                    {
-                        "message": f"complaint was successfully assigned to authority {decoded_Token['id']}"
-                    }
-                )
-            else:
-                return Response(
-                    {"message": "complaint has been assigned to a different user"}
-                )
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired"}, status=401)
-
-        except jwt.DecodeError:
-            return Response({"messages": "invalid token"}, status=401)
+        if found_complaints.assigned_to is None:
+            found_complaints.assigned_to = current_auth
+            found_complaints.save()
+            return Response(
+                {
+                    "message": f"complaint was successfully assigned to authority {request.user.id}"
+                }
+            )
+        else:
+            return Response(
+                {"message": "complaint has been assigned to a different user"}
+            )
 
 
 class AssignedComplaintView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAuthority]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
-
-        if not raw_token:
-            return Response({"message": "token not provided AssignedComplaintView"})
-
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            found_complaints = Complaints.objects.filter(
-                assigned_to=decoded_token["id"]
-            )
-            Complaints_serialized = ComplaintsModelSerializer(
-                found_complaints, many=True
-            )
-            return Response({"complaints": Complaints_serialized.data})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "invalid token"}, status=401)
+        found_complaints = Complaints.objects.filter(assigned_to=request.user.id)
+        Complaints_serialized = ComplaintsModelSerializer(found_complaints, many=True)
+        return Response({"complaints": Complaints_serialized.data})
 
 
 class UpdateStatusView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAuthority]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
         complaint_id = request.data.get("complaint_id")
         complaint_status = request.data.get("complaint_status")
 
-        if not raw_token:
-            return Response({"message": "token not provided UpdateStatusView"})
-
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            if (
-                Users.objects.filter(id=decoded_token["id"]).first().is_approved
-                == False
-            ):
-                return Response({"message": "authority is not approved"})
-            if Complaints.objects.filter(assigned_to=decoded_token["id"]):
-                complaint = Complaints.objects.filter(id=complaint_id).first()
-                complaint.complaint_status = complaint_status
-                complaint.save()
-                return Response({"message": "complaint status updated successfully"})
-            else:
-                return Response({"message": "complaint not assigned to you"})
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "invalid token"}, status=401)
+        if Users.objects.filter(id=request.user.id).first().is_approved == False:
+            return Response({"message": "authority is not approved"})
+        if Complaints.objects.filter(assigned_to=request.user.id):
+            complaint = Complaints.objects.filter(id=complaint_id).first()
+            complaint.complaint_status = complaint_status
+            complaint.save()
+            return Response({"message": "complaint status updated successfully"})
+        else:
+            return Response({"message": "no assigned complaints"})
 
 
 class GetAuthorityComplaintsView(APIView):
-    def post(self, request):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
 
-        raw_token = request.headers.get("Authorization")
+    def post(self, request):
         authority_id = request.data.get("authority_id")
 
-        if not raw_token:
-            return Response(
-                {"message": "token not received by GetAuthorityComplaintsView"},
-                status=401,
-            )
-
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            if decoded_token["role"] != "admin":
-                return Response(
-                    {"message": "You are not authorized to perform this action"},
-                    status=403,
-                )
-            found_complaints = Complaints.objects.filter(assigned_to=authority_id)
-            serialized = ComplaintsModelSerializer(found_complaints, many=True)
-            return Response({"message": serialized.data})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired "})
-
-        except jwt.DecodeError:
-            return Response({"message": "token expired"}, status=401)
+        found_complaints = Complaints.objects.filter(assigned_to=authority_id)
+        serialized = ComplaintsModelSerializer(found_complaints, many=True)
+        return Response({"message": serialized.data})
 
 
 class RevokeComplaintAssignmentView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
-        raw_token = request.headers.get("Authorization")
+
         complaint_id = request.data.get("complaint_id")
+        complaint = Complaints.objects.filter(id=complaint_id).first()
+        if not complaint:
+            return Response({"message": "Complaint not found"}, status=404)
 
-        if not raw_token:
-            return Response({"message": "Token not received"}, status=401)
+        complaint.assigned_to = None
+        complaint.complaint_status = "pending"
+        complaint.save()
 
-        try:
-            # 1. Decode and verify the JWT token
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            # 2. Check if the user making the request is an admin
-            if decoded_token["role"] != "admin":
-                return Response({"message": "Unauthorized"}, status=403)
-
-            # 3. Locate the specific complaint in the database
-            complaint = Complaints.objects.filter(id=complaint_id).first()
-            if not complaint:
-                return Response({"message": "Complaint not found"}, status=404)
-
-            # 4. Modify the fields and save
-            complaint.assigned_to = None
-            complaint.complaint_status = "pending"
-            complaint.save()
-
-            return Response({"message": "Complaint assignment revoked successfully"})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "Token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+        return Response({"message": "Complaint assignment revoked successfully"})
 
 
 class BanuserView(APIView):
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
         authority_id = request.data.get("authority_id")
 
-        if not raw_token:
-            return Response({"message": "token not provided"}, status=401)
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            if decoded_token["role"] != "admin":
-                return Response({"message": "unauthorized"}, status=403)
-            user = Users.objects.filter(id=authority_id).first()
-            complaint = Complaints.objects.filter(assigned_to=authority_id)
-            if not user:
-                return Response({"message": "user not found"}, status=404)
-            user.is_approved = False
-            user.save()
-            if complaint:
-                complaint.update(assigned_to=None, complaint_status="pending")
+        user = Users.objects.filter(id=authority_id).first()
+        complaint = Complaints.objects.filter(assigned_to=authority_id)
+        if not user:
+            return Response({"message": "user not found"}, status=404)
+        user.is_approved = False
+        user.save()
+        if complaint:
+            complaint.update(assigned_to=None, complaint_status="pending")
 
-            return Response(
-                {"message": "authority banned successfully and complaints are revoked "}
-            )
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "invalid token"}, status=401)
+        return Response(
+            {"message": "authority banned successfully and complaints are revoked "}
+        )
 
 
 class GetMasterComplaintsView(APIView):
+
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isAdmin]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
         role = request.data.get("role")
 
-        if not raw_token:
-            return Response(
-                {"message": "token not provided GetMasterComplaintsView"}, status=401
+        # Fetch complaints based on role
+        if role == "police":
+            complaints = Complaints.objects.filter(
+                complaint_type__in=[
+                    "Harassment",
+                    "Domestic violence",
+                    "Stalking",
+                    "assault",
+                    "workspaceHarassment",
+                ]
             )
-
-        try:
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-
-            # Optional: Check if the user is an admin
-            if decoded_token["role"] != "admin":
-                return Response({"message": "Unauthorized"}, status=403)
-
-            # Fetch complaints based on role
-            if role == "police":
-                complaints = Complaints.objects.filter(
-                    complaint_type__in=[
-                        "Harassment",
-                        "Domestic violence",
-                        "Stalking",
-                        "assault",
-                        "workspaceHarassment",
-                    ]
-                )
-            elif role == "cyber_crime":
-                complaints = Complaints.objects.filter(complaint_type="cyber_crime")
-            else:
-                return Response({"message": "Invalid role"}, status=400)
-
-            # Serialize complaints
-            serialized = ComplaintsModelSerializer(complaints, many=True)
-            return Response({"message": serialized.data})
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "Token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+        elif role == "cyber_crime":
+            complaints = Complaints.objects.filter(complaint_type="cyber_crime")
+        else:
+            return Response({"message": "Invalid role"}, status=400)
+        serialized = ComplaintsModelSerializer(complaints, many=True)
+        return Response({"message": serialized.data})
 
 
 class DraftPublicPostView(APIView):
 
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isUser]
+
     def post(self, request):
 
-        raw_token = request.headers.get("Authorization")
         complaint_id = request.data.get("complaint_id")
 
-        if not raw_token:
-            return Response({"message": "token not provided"}, status=401)
+        found_complaint = Complaints.objects.filter(id=complaint_id).first()
 
-        try:
+        if not found_complaint:
+            return Response({"message": "Complaint not found"}, status=404)
 
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        result = app.invoke({"complaint_text": found_complaint.detailed_description})
 
-            found_complaint = Complaints.objects.filter(id=complaint_id).first()
-
-            if not found_complaint:
-                return Response({"message": "Complaint not found"}, status=404)
-
-            result = app.invoke(
-                {"complaint_text": found_complaint.detailed_description}
-            )
-
-            return Response(
-                {
-                    "draft_post_ai": result.get("draft_post"),
-                    "safety_issue_ai": result.get("safety_issue"),
-                    "auditor_notes_ai": result.get("auditor_notes"),
-                },
-                status=200,
-            )
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "Token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+        return Response(
+            {
+                "draft_post_ai": result.get("draft_post"),
+                "safety_issue_ai": result.get("safety_issue"),
+                "auditor_notes_ai": result.get("auditor_notes"),
+            },
+            status=200,
+        )
 
 
 class ConfirmPostView(APIView):
 
+    authentication_classes = [CentralizedCookieCheck]
+    permission_classes = [isUser]
+
     def post(self, request):
-        raw_token = request.headers.get("Authorization")
         draft_post = request.data.get("draft_post")
         complaint_id = request.data.get("complaint_id")
 
-        if not raw_token:
-            return Response({"message": "token not provided"}, status=401)
+        found_complaint = Complaints.objects.filter(id=complaint_id).first()
+        if not found_complaint:
+            return Response({"message": "Complaint not found"}, status=404)
 
-        try:
+        llm_with_tools = llm.bind_tools([post_to_twitter_tool, post_to_discord_tool])
 
-            token = raw_token.split(" ")[1]
-            decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        prompt = f"Please publish the following public safety warning to X and discord: {draft_post}"
+        response = llm_with_tools.invoke(prompt)
 
-            found_complaint = Complaints.objects.filter(id=complaint_id).first()
-            if not found_complaint:
-                return Response({"message": "Complaint not found"}, status=404)
+        if response.tool_calls:
+            execution_result = []
+            for items in response.tool_calls:
+                tool_name = items["name"]
+                tool_args = items["args"]
 
-            llm_with_tools = llm.bind_tools([post_to_twitter_tool])
+                if tool_name == "post_to_twitter_tool":
+                    res = post_to_twitter_tool.invoke(tool_args)
+                    if res.lower().startswith("error"):
+                        return Response({"message": res}, status=400)
+                    execution_result.append(f"twitter: {res}")
 
-            prompt = f"Please publish the following public safety warning to Twitter/X: {draft_post}"
-            response = llm_with_tools.invoke(prompt)
+                elif tool_name == "post_to_discord_tool":
+                    res = post_to_discord_tool.invoke(tool_args)
+                    if res.lower().startswith("error"):
+                        return Response({"message": res}, status=400)
+                    execution_result.append(f"discord: {res}")
 
-            if response.tool_calls:
-                tool_call = response.tool_calls[0]
-                tool_result = post_to_twitter_tool.invoke(tool_call["args"])
-
-                # A. Check if the tool failed (case-insensitive check for "error")
-                if tool_result.lower().startswith("error"):
-                    return Response({"message": tool_result}, status=400)
-
-                # B. If the tool succeeded: save to the database
-                found_complaint.public_post_text = draft_post
-                found_complaint.is_public = True
-                found_complaint.save()
-
-                # C. Return the success response
-                return Response(
-                    {"message": "posted successfully", "twitter_result": tool_result},
-                    status=200,
-                )
-            else:
-                # D. The LLM chose not to make a tool call
-                return Response(
-                    {"message": "AI agent chose not to call the posting tool."},
-                    status=400,
-                )
-
-        except jwt.ExpiredSignatureError:
-            return Response({"message": "Token expired"}, status=401)
-        except jwt.DecodeError:
-            return Response({"message": "Invalid token"}, status=401)
+            found_complaint.public_post_text = draft_post
+            found_complaint.is_public = True
+            found_complaint.save()
+            return Response(
+                {
+                    "message": "posted successfully",
+                    "twitter_result": execution_result,
+                },
+                status=200,
+            )
+        else:
+            return Response(
+                {"message": "AI agent chose not to call the posting tool."},
+                status=400,
+            )

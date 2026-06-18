@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog"
 import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { apiFetch } from "@/services/api";
+
 
 export default function MyComplaintsPage() {
 
@@ -22,14 +24,12 @@ export default function MyComplaintsPage() {
     const [search, setSearch] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedComplaintId, setSelectedComplaintId] = useState(null);
-    const token = localStorage.getItem("token");
     const [form_data, Setformdata] = useState({
         draft_post_ai: "",
         manual_complaint_draft: "",
         safety_issue_ai: null,
         auditor_notes_ai: "",
     })
-
     const [step, setstep] = useState(0);
 
     const setter = (event) => {
@@ -63,11 +63,8 @@ export default function MyComplaintsPage() {
 
     const myComplaints = async () => {
 
-        const token = localStorage.getItem("token");
-
-        const response = await fetch(window.API_BASE_URL + "/api/user/viewcomplaints/", {
+        const response = await apiFetch("/api/user/viewcomplaints/", {
             method: "GET",
-            headers: { Authorization: `Bearer ${token}` }
         })
         if (response.status === 429) {
             const error = await response.json()
@@ -86,10 +83,9 @@ export default function MyComplaintsPage() {
     receive the draft
     */}
     const draft_post = async () => {
-        const response = await fetch(window.API_BASE_URL + "/api/user/draft_post/", {
+        const response = await apiFetch("/api/user/draft_post/", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
@@ -116,10 +112,9 @@ export default function MyComplaintsPage() {
     }
 
     const handleSubmitPost = async () => {
-        const response = await fetch(window.API_BASE_URL + "/api/user/submit_post/", {
+        const response = await apiFetch("/api/user/submit_post/", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
