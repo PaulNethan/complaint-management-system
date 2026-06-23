@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/services/api";
 
 
-export default function HomePage() {
+export default function ProfilePage() {
 
   const [profilePictureUrl, setProfilePictureUrl] = useState("")
 
@@ -65,8 +65,13 @@ export default function HomePage() {
           <div className="flex gap-7">
 
             <div className="flex">
-              <img src={`${profilePictureUrl}`} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
+              {profilePictureUrl ? (
+                <img src={profilePictureUrl} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
+              ) : (
+                <div className="w-24 h-24 rounded-full border-2 bg-gray-200 animate-pulse"></div>
+              )}
             </div>
+
 
 
             <div>

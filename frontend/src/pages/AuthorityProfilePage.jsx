@@ -64,7 +64,11 @@ export default function AdminProfilePage() {
 
 
                         <div className="flex">
-                            <img src={`http://127.0.0.1:8000${profilePictureUrl}`} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
+                            {profilePictureUrl ? (
+                                <img src={profilePictureUrl} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
+                            ) : (
+                                <div className="w-24 h-24 rounded-full border-2 bg-gray-200 animate-pulse"></div>
+                            )}
                         </div>
 
                         <div>
