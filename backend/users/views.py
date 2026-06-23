@@ -13,6 +13,7 @@ from complaints.models import Complaints
 from complaints.authentication import CentralizedCookieCheck
 from complaints.permissions import isAdmin, isUser, isAuthority
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import AnonRateThrottle
 
 
 class Serializer(ModelSerializer):
@@ -56,6 +57,8 @@ password that was stored in the browser if match is found returns a token valid 
 
 
 class LoginView(APIView):
+    throttle_classes = [AnonRateThrottle]
+
     def post(self, request):
 
         verifyEmail = request.data.get("email")
@@ -123,7 +126,13 @@ class ProfilePicView(APIView):
     def get(self, request):
 
         if request.user and request.user.profile_picture:
-            return Response({"message": str(request.user.profile_picture.url)})
+            return Response(
+                {
+                    "message": request.build_absolute_uri(
+                        request.user.profile_picture.url
+                    )
+                }
+            )
         else:
             return Response({"message": "no profile picture"})
 
@@ -133,7 +142,13 @@ class ProfilePicView(APIView):
         if profile_picture:
             request.user.profile_picture = profile_picture
             request.user.save()
-            return Response({"message": str(request.user.profile_picture.url)})
+            return Response(
+                {
+                    "message": request.build_absolute_uri(
+                        request.user.profile_picture.url
+                    )
+                }
+            )
 
         else:
             return Response(

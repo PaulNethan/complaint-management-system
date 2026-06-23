@@ -65,7 +65,7 @@ export default function HomePage() {
           <div className="flex gap-7">
 
             <div className="flex">
-              <img src={`http://127.0.0.1:8000${profilePictureUrl}`} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
+              <img src={`${profilePictureUrl}`} alt="My profile" className="w-24 h-24 rounded-full border-2 object-cover" />
             </div>
 
 

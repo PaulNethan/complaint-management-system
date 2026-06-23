@@ -74,6 +74,8 @@ export default function RegisterComplaintsPage() {
 
   const handelSubmitComplaints = async () => {
     const formData = new FormData();
+    const isValid = canProceed();
+
 
     const contact_input = complaintDetails.victim_contact_info
     if (contact_input !== "") {
@@ -92,16 +94,21 @@ export default function RegisterComplaintsPage() {
       formData.append("victim_phone_no", phoneValue);
     }
 
-    Object.keys(complaintDetails).forEach((key) => {
-      if (key !== "victim_contact_info" && key !== "victim_email" && key !== "victim_phone_no") {
-        formData.append(key, complaintDetails[key]);
-      }
-    })
-    evidence.forEach((file) => {
-      formData.append("evidence_file", file);
-    });
 
-
+    if (isValid === false) {
+      alert("enter the required fields to proceed")
+      return
+    }
+    else {
+      Object.keys(complaintDetails).forEach((key) => {
+        if (key !== "victim_contact_info" && key !== "victim_email" && key !== "victim_phone_no") {
+          formData.append(key, complaintDetails[key]);
+        }
+      })
+      evidence.forEach((file) => {
+        formData.append("evidence_file", file);
+      });
+    }
 
     const response = await apiFetch("/api/user/raisecomplaints/",
       {
@@ -113,6 +120,7 @@ export default function RegisterComplaintsPage() {
     console.log(data)
 
     nextStep();
+
   };
 
   const handelFileUpload = (e) => {

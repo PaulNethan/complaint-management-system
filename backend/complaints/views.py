@@ -330,7 +330,6 @@ class DraftPublicPostView(APIView):
 
 
 class ConfirmPostView(APIView):
-
     authentication_classes = [CentralizedCookieCheck]
     permission_classes = [isUser]
 
@@ -342,41 +341,29 @@ class ConfirmPostView(APIView):
         if not found_complaint:
             return Response({"message": "Complaint not found"}, status=404)
 
-        llm_with_tools = llm.bind_tools([post_to_twitter_tool, post_to_discord_tool])
+        execution_result = []
 
-        prompt = f"Please publish the following public safety warning to X and discord: {draft_post}"
-        response = llm_with_tools.invoke(prompt)
+        # 1. Deterministically invoke the Twitter tool directly
+        twitter_res = post_to_twitter_tool.invoke({"tweet_text": draft_post})
+        if twitter_res.lower().startswith("error"):
+            return Response({"message": twitter_res}, status=400)
+        execution_result.append(f"twitter: {twitter_res}")
 
-        if response.tool_calls:
-            execution_result = []
-            for items in response.tool_calls:
-                tool_name = items["name"]
-                tool_args = items["args"]
+        # 2. Deterministically invoke the Discord tool directly
+        discord_res = post_to_discord_tool.invoke({"message": draft_post})
+        if discord_res.lower().startswith("error"):
+            return Response({"message": discord_res}, status=400)
+        execution_result.append(f"discord: {discord_res}")
 
-                if tool_name == "post_to_twitter_tool":
-                    res = post_to_twitter_tool.invoke(tool_args)
-                    if res.lower().startswith("error"):
-                        return Response({"message": res}, status=400)
-                    execution_result.append(f"twitter: {res}")
+        # 3. Save the exact user-approved text to the database
+        found_complaint.public_post_text = draft_post
+        found_complaint.is_public = True
+        found_complaint.save()
 
-                elif tool_name == "post_to_discord_tool":
-                    res = post_to_discord_tool.invoke(tool_args)
-                    if res.lower().startswith("error"):
-                        return Response({"message": res}, status=400)
-                    execution_result.append(f"discord: {res}")
-
-            found_complaint.public_post_text = draft_post
-            found_complaint.is_public = True
-            found_complaint.save()
-            return Response(
-                {
-                    "message": "posted successfully",
-                    "twitter_result": execution_result,
-                },
-                status=200,
-            )
-        else:
-            return Response(
-                {"message": "AI agent chose not to call the posting tool."},
-                status=400,
-            )
+        return Response(
+            {
+                "message": "posted successfully",
+                "twitter_result": execution_result,
+            },
+            status=200,
+        )
